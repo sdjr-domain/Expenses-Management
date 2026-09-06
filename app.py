@@ -21,9 +21,13 @@ def register():
         name = request.form.get("name")
         email = request.form.get("email")
         password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
 
-        if not name or not email or not password:
+        if not name or not email or not password or not confirm_password:
             return render_template("register.html", error="All fields are required.")
+
+        if password != confirm_password:
+            return render_template("register.html", error="Passwords do not match.")
 
         if get_user_by_email(email):
             return render_template("register.html", error="This email is already registered.")
