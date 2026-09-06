@@ -1,4 +1,4 @@
- ▐▛███▛█   Claude Code v2.1.260
+!! ▐▛███▛█   Claude Code v2.1.260
 ▝▜██████▀  gemma4:31b · API Usage Billing
   ▝▝ ▝▝    ~/Documents/Claude/expense-tracker
 
