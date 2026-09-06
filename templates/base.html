@@ -22,8 +22,13 @@
             <span>Spendly</span>
         </a>
         <div class="flex items-center gap-6">
-            <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Sign in</a>
-            <a href="{{ url_for('register') }}" class="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">Get started</a>
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('profile') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Profile</a>
+                <a href="{{ url_for('logout') }}" class="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">Sign out</a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Sign in</a>
+                <a href="{{ url_for('register') }}" class="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">Get started</a>
+            {% endif %}
         </div>
     </nav>
 
