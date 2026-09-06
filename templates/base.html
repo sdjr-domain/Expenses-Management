@@ -60,6 +60,10 @@
                 <a href="{{ url_for('terms') }}" class="hover:text-slate-600 transition-colors">Terms and Conditions</a>
                 <a href="{{ url_for('privacy') }}" class="hover:text-slate-600 transition-colors">Privacy Policy</a>
             </div>
+            <!-- Debug Session Status -->
+            <div class="text-[10px] text-slate-300 mt-4">
+                Session ID: {{ session.get('user_id', 'None') }}
+            </div>
         </div>
     </footer>
 
