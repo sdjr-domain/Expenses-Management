@@ -47,8 +47,8 @@ def get_category_totals(user_id):
             (user_id,)
         ).fetchall()
 
-def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None):
-    """Returns a list of expenses for a user with optional filters."""
+def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None, sort=None):
+    """Returns a list of expenses for a user with optional filters and sorting."""
     with get_db() as db:
         query = "SELECT * FROM expenses WHERE user_id = ?"
         params = [user_id]
@@ -61,7 +61,18 @@ def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None
         if end_date:
             query += " AND date <= ?"
             params.append(end_date)
-        query += " ORDER BY date DESC"
+
+        if sort == "amount_asc":
+            query += " ORDER BY amount ASC"
+        elif sort == "amount_desc":
+            query += " ORDER BY amount DESC"
+        elif sort == "date_asc":
+            query += " ORDER BY date ASC"
+        elif sort == "date_desc":
+            query += " ORDER BY date DESC"
+        else:
+            query += " ORDER BY date DESC"
+
         return db.execute(query, params).fetchall()
 
 def add_expense(db, user_id, amount, category, date, description):

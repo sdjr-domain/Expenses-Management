@@ -24,13 +24,9 @@
                 <label for="category" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Category</label>
                 <select name="category" id="category" required
                         class="w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
-                    <option value="Food" {% if expense.category == 'Food' %}selected{% endif %}>Food</option>
-                    <option value="Transport" {% if expense.category == 'Transport' %}selected{% endif %}>Transport</option>
-                    <option value="Bills" {% if expense.category == 'Bills' %}selected{% endif %}>Bills</option>
-                    <option value="Health" {% if expense.category == 'Health' %}selected{% endif %}>Health</option>
-                    <option value="Entertainment" {% if expense.category == 'Entertainment' %}selected{% endif %}>Entertainment</option>
-                    <option value="Shopping" {% if expense.category == 'Shopping' %}selected{% endif %}>Shopping</option>
-                    <option value="Other" {% if expense.category == 'Other' %}selected{% endif %}>Other</option>
+                    {% for cat in user_categories %}
+                    <option value="{{ cat.name }}" {% if expense.category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
                 </select>
             </div>
 

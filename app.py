@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category
 from functools import wraps
 
 # Category color mapping for the UI
@@ -115,10 +115,11 @@ def dashboard():
     category = request.args.get("category")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
+    sort = request.args.get("sort")
 
     summary = get_spending_summary(user_id)
     categories = get_category_totals(user_id)
-    expenses = get_filtered_expenses(user_id, category, start_date, end_date)
+    expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort)
     user_categories = get_user_categories(user_id)
 
     return render_template("dashboard.html", summary=summary, categories=categories, expenses=expenses, category_colors=CATEGORY_COLORS, user_categories=user_categories)
@@ -175,6 +176,7 @@ def add_expense():
 @login_required
 def edit_expense(id):
     user_id = session["user_id"]
+    user_categories = get_user_categories(user_id)
     with get_db() as db:
         expense = get_expense_by_id(db, id)
 
@@ -207,7 +209,7 @@ def edit_expense(id):
                 flash("An error occurred while updating the expense.", "error")
                 return redirect(url_for("edit_expense", id=id))
 
-    return render_template("edit_expense.html", expense=expense)
+    return render_template("edit_expense.html", expense=expense, user_categories=user_categories)
 
 
 @app.route("/categories")
@@ -275,7 +277,7 @@ def delete_category_route(id):
 
 @app.route("/expenses/<int:id>/delete", methods=["POST"])
 @login_required
-def delete_expense(id):
+def delete_expense_route(id):
     with get_db() as db:
         if delete_expense(db, id, session["user_id"]):
             flash("Expense deleted successfully.", "success")
