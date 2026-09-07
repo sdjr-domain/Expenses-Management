@@ -22,6 +22,10 @@ def get_user_by_id(user_id):
     with get_db() as db:
         return db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
 
+def get_expense_by_id(db, expense_id):
+    """Returns an expense record if the ID exists, otherwise None."""
+    return db.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
+
 def get_spending_summary(user_id):
     """Returns total spending and the top spending category for a user."""
     with get_db() as db:
@@ -60,6 +64,78 @@ def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None
         query += " ORDER BY date DESC"
         return db.execute(query, params).fetchall()
 
+def add_expense(db, user_id, amount, category, date, description):
+    """Adds a new expense record for a user."""
+    db.execute(
+        "INSERT INTO expenses (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)",
+        (user_id, amount, category, date, description)
+    )
+    db.commit()
+
+def delete_expense(db, expense_id, user_id):
+    """Deletes an expense record if it belongs to the specified user."""
+    cursor = db.execute(
+        "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+        (expense_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def update_expense(db, expense_id, user_id, amount, category, date, description):
+    """Updates an expense record if it belongs to the specified user."""
+    cursor = db.execute(
+        "UPDATE expenses SET amount = ?, category = ?, date = ?, description = ? WHERE id = ? AND user_id = ?",
+        (amount, category, date, description, expense_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def add_category(db, user_id, name, color=None):
+    """Adds a new custom category for a user."""
+    db.execute(
+        "INSERT INTO categories (user_id, name, color) VALUES (?, ?, ?)",
+        (user_id, name, color)
+    )
+    db.commit()
+
+def get_user_categories(user_id):
+    """Returns all categories for a user."""
+    with get_db() as db:
+        return db.execute(
+            "SELECT * FROM categories WHERE user_id = ? ORDER BY name ASC",
+            (user_id,)
+        ).fetchall()
+
+def delete_category(db, cat_id, user_id):
+    """Deletes a category record if it belongs to the specified user."""
+    cursor = db.execute(
+        "DELETE FROM categories WHERE id = ? AND user_id = ?",
+        (cat_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def update_category(db, cat_id, user_id, new_name):
+    """Updates a category name if it belongs to the specified user."""
+    cursor = db.execute(
+        "UPDATE categories SET name = ? WHERE id = ? AND user_id = ?",
+        (new_name, cat_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def ensure_default_categories(user_id):
+    """Ensures a user has the basic set of default categories."""
+    defaults = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
+    with get_db() as db:
+        existing = db.execute("SELECT name FROM categories WHERE user_id = ?", (user_id,)).fetchall()
+        existing_names = {row["name"] for row in existing}
+
+        for name in defaults:
+            if name not in existing_names:
+                db.execute("INSERT INTO categories (user_id, name) VALUES (?, ?)", (user_id, name))
+        db.commit()
+
 def init_db():
     """Creates all tables using CREATE TABLE IF NOT EXISTS."""
     with get_db() as db:
@@ -81,6 +157,15 @@ def init_db():
                 date TEXT NOT NULL,
                 description TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                color TEXT,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
