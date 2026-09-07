@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses
 from functools import wraps
 
 app = Flask(__name__)
@@ -22,6 +22,8 @@ def login_required(f):
 
 @app.route("/")
 def landing():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
     return render_template("landing.html")
 
 
@@ -77,7 +79,7 @@ def login():
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = user["id"]
             flash("Welcome back!", "success")
-            return redirect(url_for("landing"))
+            return redirect(url_for("dashboard"))
 
         return render_template("login.html", error="Invalid email or password.")
 
@@ -94,9 +96,19 @@ def privacy():
     return render_template("privacy.html")
 
 
-# ------------------------------------------------------------------ #
-# Placeholder routes — students will implement these                  #
-# ------------------------------------------------------------------ #
+@app.route("/dashboard")
+@login_required
+def dashboard():
+    user_id = session["user_id"]
+    category = request.args.get("category")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    summary = get_spending_summary(user_id)
+    categories = get_category_totals(user_id)
+    expenses = get_filtered_expenses(user_id, category, start_date, end_date)
+
+    return render_template("dashboard.html", summary=summary, categories=categories, expenses=expenses)
 
 @app.route("/logout")
 def logout():
@@ -108,7 +120,9 @@ def logout():
 @app.route("/profile")
 @login_required
 def profile():
-    return "Profile page — coming in Step 4"
+    user_id = session.get("user_id")
+    user = get_user_by_id(user_id)
+    return render_template("profile.html", user=user)
 
 
 @app.route("/expenses/add")
