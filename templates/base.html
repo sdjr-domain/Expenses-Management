@@ -16,13 +16,14 @@
 </head>
 <body class="bg-white text-slate-900 antialiased">
 
-    <nav class="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
+    <nav class="flex items-center justify-between px-6 py-4 w-full">
         <a href="{{ url_for('landing') }}" class="flex items-center gap-2 text-lg font-semibold tracking-tight">
             <span class="text-emerald-600">◈</span>
             <span>Spendly</span>
         </a>
         <div class="flex items-center gap-6">
             {% if session.get('user_id') %}
+                <a href="{{ url_for('dashboard') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Home</a>
                 <a href="{{ url_for('profile') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Profile</a>
                 <a href="{{ url_for('assets') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Assets</a>
                 <a href="{{ url_for('categories') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Categories</a>
@@ -34,7 +35,7 @@
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-6 py-4">
+    <div class="w-full px-6 py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -46,12 +47,13 @@
         {% endwith %}
     </div>
 
-    <div class="max-w-screen-2xl mx-auto px-6">
+    <div class="w-full px-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <main class="lg:col-span-9">
                 {% block content %}{% endblock %}
             </main>
 
+            {% block sidebar %}
             <aside class="hidden lg:block lg:col-span-3">
                 {% if session.get('user_id') and financial_summary %}
                 <div class="sticky top-8">
@@ -95,17 +97,18 @@
 
                     <!-- Quick Tip Card -->
                     <div class="mt-6 p-4 bg-slate-900 rounded-2xl text-white shadow-lg shadow-slate-200">
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pro Tip</p>
-                        <p class="text-xs leading-relaxed text-slate-300">Keep your expenses below 50% of your income for a healthy financial future.</p>
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Financial Wisdom</p>
+                        <p class="text-xs leading-relaxed text-slate-300 italic">"{{ pro_tip }}"</p>
                     </div>
                 </div>
                 {% endif %}
             </aside>
+            {% endblock %}
         </div>
     </div>
 
     <footer class="border-t border-slate-100 mt-20 py-12 px-6">
-        <div class="max-w-7xl mx-auto flex flex-col items-center gap-4 text-center">
+        <div class="w-full flex flex-col items-center gap-4 text-center">
             <div class="flex items-center gap-2 text-lg font-semibold">
                 <span class="text-emerald-600">◈</span>
                 <span>Spendly</span>

@@ -77,8 +77,33 @@ def get_category_totals(user_id):
             (user_id,)
         ).fetchall()
 
-def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None, sort=None):
-    """Returns a list of expenses for a user with optional filters and sorting."""
+def get_total_transaction_count(user_id):
+    """Returns the total count of all transactions (income and expenses) for a user."""
+    with get_db() as db:
+        income_count = db.execute("SELECT COUNT(*) as count FROM income WHERE user_id = ?", (user_id,)).fetchone()["count"]
+        expense_count = db.execute("SELECT COUNT(*) as count FROM expenses WHERE user_id = ?", (user_id,)).fetchone()["count"]
+        return income_count + expense_count
+
+def get_filtered_expenses_count(user_id, category=None, start_date=None, end_date=None):
+    """Returns the total count of expenses for a user matching the filters."""
+    with get_db() as db:
+        query = "SELECT COUNT(*) as count FROM expenses WHERE user_id = ?"
+        params = [user_id]
+        if category and category != "All":
+            query += " AND category = ?"
+            params.append(category)
+        if start_date:
+            query += " AND date >= ?"
+            params.append(start_date)
+        if end_date:
+            query += " AND date <= ?"
+            params.append(end_date)
+
+        row = db.execute(query, params).fetchone()
+        return row["count"] if row else 0
+
+def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None, sort=None, limit=None, offset=None):
+    """Returns a list of expenses for a user with optional filters, sorting, and pagination."""
     with get_db() as db:
         query = "SELECT * FROM expenses WHERE user_id = ?"
         params = [user_id]
@@ -102,6 +127,13 @@ def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None
             query += " ORDER BY date DESC"
         else:
             query += " ORDER BY date DESC"
+
+        if limit is not None:
+            query += " LIMIT ?"
+            params.append(limit)
+        if offset is not None:
+            query += " OFFSET ?"
+            params.append(offset)
 
         return db.execute(query, params).fetchall()
 

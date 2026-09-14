@@ -1,6 +1,8 @@
+import random
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary
 from functools import wraps
 
 # Category color mapping for the UI
@@ -17,12 +19,58 @@ CATEGORY_COLORS = {
 app = Flask(__name__)
 app.secret_key = "spendly-secret-key-for-flashing"
 
+PRO_TIPS = [
+    "The 50/30/20 rule: 50% Needs, 30% Wants, 20% Savings. Master your money, master your life. 🚀",
+    "Pay yourself first. Automate your savings before you spend a single rupee. 💰",
+    "Small leaks sink big ships. Track those tiny daily expenses to save thousands monthly. ⚓",
+    "Avoid 'lifestyle creep'. As your income grows, keep your expenses steady. 📈",
+    "Invest in yourself. The best return on investment is your own knowledge. 📚",
+    "Don't save what is left after spending; spend what is left after saving. 🎯",
+    "A budget isn't a restriction; it's a blueprint for your freedom. 🗽"
+]
+
+@app.template_filter('indian_format')
+def indian_format(value):
+    """Formats a number with Indian comma system (e.g., 1,23,456.78)."""
+    try:
+        val = float(value)
+        # Separate integer and decimal parts
+        s = str(int(val))
+        decimal = abs(val) - int(abs(val))
+
+        if not s:
+            s = "0"
+
+        # Handle negative numbers
+        prefix = "-" if val < 0 else ""
+
+        # Last 3 digits
+        last_three = s[-3:]
+        remaining = s[:-3]
+
+        # Every 2 digits for the rest
+        if remaining:
+            # Reverse remaining, chunk by 2, join with comma, reverse back
+            remaining = remaining[::-1]
+            chunks = [remaining[i:i+2] for i in range(0, len(remaining), 2)]
+            remaining = ",".join(chunks)[::-1]
+            result = f"{prefix}{remaining},{last_three}"
+        else:
+            result = f"{prefix}{last_three}"
+
+        return f"{result}{f'{decimal:.2f}'[1:] if decimal != 0 else '.00'}"
+    except (ValueError, TypeError):
+        return value
+
 @app.context_processor
 def inject_financial_summary():
     if "user_id" in session:
         user_id = session["user_id"]
-        return dict(financial_summary=get_financial_summary(user_id))
-    return dict(financial_summary=None)
+        return dict(
+            financial_summary=get_financial_summary(user_id),
+            pro_tip=random.choice(PRO_TIPS)
+        )
+    return dict(financial_summary=None, pro_tip=None)
 
 def login_required(f):
     @wraps(f)
@@ -124,13 +172,36 @@ def dashboard():
     end_date = request.args.get("end_date")
     sort = request.args.get("sort")
 
+    # Pagination parameters
+    try:
+        limit = int(request.args.get("limit", 10))
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        limit = 10
+        offset = 0
+
     summary = get_spending_summary(user_id)
     categories = get_category_totals(user_id)
-    expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort)
+
+    # Get total count for pagination
+    total_expenses = get_filtered_expenses_count(user_id, category, start_date, end_date)
+    expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort, limit=limit, offset=offset)
+    total_transactions = get_total_transaction_count(user_id)
+
     user_categories = get_user_categories(user_id)
     total_assets = get_total_assets(user_id)
 
-    return render_template("dashboard.html", summary=summary, categories=categories, expenses=expenses, category_colors=CATEGORY_COLORS, user_categories=user_categories, total_assets=total_assets)
+    return render_template("dashboard.html",
+                           summary=summary,
+                           categories=categories,
+                           expenses=expenses,
+                           category_colors=CATEGORY_COLORS,
+                           user_categories=user_categories,
+                           total_assets=total_assets,
+                           total_count=total_expenses,
+                           limit=limit,
+                           offset=offset,
+                           total_transactions=total_transactions)
 
 @app.route("/logout")
 def logout():
