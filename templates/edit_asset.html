@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Asset - Spendly{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-12">
+    <div class="mb-8">
+        <a href="{{ url_for('assets') }}" class="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Assets
+        </a>
+        <h1 class="text-3xl font-bold text-slate-900">Edit Asset</h1>
+        <p class="text-slate-500 text-sm">Update the details of your investment.</p>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+        <form action="{{ url_for('edit_asset', id=asset.id) }}" method="POST" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-700">Asset Type</label>
+                    <select name="type" id="assetType" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white text-sm" required>
+                        <option value="Mutual Fund" {% if asset.type == 'Mutual Fund' %}selected{% endif %}>Mutual Fund</option>
+                        <option value="Insurance Policy" {% if asset.type == 'Insurance Policy' %}selected{% endif %}>Insurance Policy</option>
+                        <option value="Fixed Deposit" {% if asset.type == 'Fixed Deposit' %}selected{% endif %}>Fixed Deposit</option>
+                        <option value="Other" {% if asset.type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-700">Amount (₹)</label>
+                    <input type="number" step="0.01" name="amount" id="amount" value="{{ asset.amount }}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-700">Investment Date</label>
+                    <input type="date" name="date" id="date" value="{{ asset.date }}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm" required>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-700">Description</label>
+                    <input type="text" name="description" value="{{ asset.description or '' }}" placeholder="Optional notes..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                </div>
+            </div>
+
+            <!-- Fixed Deposit Specific Fields -->
+            <div id="fdFields" class="hidden p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Fixed Deposit Details</h3>
+                    <button type="button" id="calcMaturity" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 14h.01M12 11h.01M9 11h.01M15 11h.01" />
+                        </svg>
+                        Calculate Maturity
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Maturity Date</label>
+                        <input type="date" name="maturity_date" id="maturity_date" value="{{ asset.maturity_date or '' }}" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Interest Rate (%)</label>
+                        <input type="number" step="0.0001" name="interest_rate" id="interest_rate" value="{{ asset.interest_rate or '' }}" placeholder="e.g. 7.1" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium text-slate-700">Maturity Amount (₹)</label>
+                        <input type="number" step="0.01" name="maturity_amount" id="maturity_amount" value="{{ asset.maturity_amount or '' }}" placeholder="0.00" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-sm">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-all shadow-sm">
+                    Update Asset
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const typeSelect = document.getElementById('assetType');
+    const fdFields = document.getElementById('fdFields');
+    const calcBtn = document.getElementById('calcMaturity');
+
+    function toggleFDFields() {
+        if (typeSelect.value === 'Fixed Deposit') {
+            fdFields.classList.remove('hidden');
+        } else {
+            fdFields.classList.add('hidden');
+        }
+    }
+
+    function calculateMaturity() {
+        const principal = parseFloat(document.getElementById('amount').value);
+        const startDateValue = document.getElementById('date').value;
+        const endDateValue = document.getElementById('maturity_date').value;
+        const rate = parseFloat(document.getElementById('interest_rate').value);
+        const maturityAmountField = document.getElementById('maturity_amount');
+
+        if (isNaN(principal) || !startDateValue || !endDateValue || isNaN(rate)) {
+            alert("Please provide amount, investment date, maturity date, and interest rate for calculation.");
+            return;
+        }
+
+        const startDate = new Date(startDateValue);
+        const endDate = new Date(endDateValue);
+
+        if (endDate <= startDate) {
+            alert("Maturity date must be after the investment date.");
+            return;
+        }
+
+        // Calculate years as a decimal
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const years = diffDays / 365.25;
+
+        // Compound Interest Formula: A = P(1 + r/n)^nt
+        // Assuming annual compounding for simplicity (n=1)
+        const maturityAmount = principal * Math.pow((1 + rate / 100), years);
+
+        maturityAmountField.value = maturityAmount.toFixed(2);
+    }
+
+    typeSelect.addEventListener('change', toggleFDFields);
+    calcBtn.addEventListener('click', calculateMaturity);
+    window.addEventListener('DOMContentLoaded', toggleFDFields);
+</script>
+{% endblock %}

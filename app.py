@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets
 from functools import wraps
 
 # Category color mapping for the UI
@@ -121,8 +121,9 @@ def dashboard():
     categories = get_category_totals(user_id)
     expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort)
     user_categories = get_user_categories(user_id)
+    total_assets = get_total_assets(user_id)
 
-    return render_template("dashboard.html", summary=summary, categories=categories, expenses=expenses, category_colors=CATEGORY_COLORS, user_categories=user_categories)
+    return render_template("dashboard.html", summary=summary, categories=categories, expenses=expenses, category_colors=CATEGORY_COLORS, user_categories=user_categories, total_assets=total_assets)
 
 @app.route("/logout")
 def logout():
@@ -299,7 +300,104 @@ def delete_expense_route(id):
     return redirect(url_for("dashboard"))
 
 
+@app.route("/assets")
+@login_required
+def assets():
+    user_id = session["user_id"]
+    assets_list = get_assets(user_id)
+    return render_template("assets.html", assets=assets_list)
+
+@app.route("/assets/add", methods=["GET", "POST"])
+@login_required
+def add_asset_route():
+    user_id = session["user_id"]
+    if request.method == "POST":
+        asset_type = request.form.get("type")
+        amount = request.form.get("amount")
+        date = request.form.get("date")
+        description = request.form.get("description")
+        maturity_date = request.form.get("maturity_date")
+        interest_rate = request.form.get("interest_rate")
+        maturity_amount = request.form.get("maturity_amount")
+
+        if not asset_type or not amount or not date:
+            flash("Type, amount, and date are required.", "error")
+            return redirect(url_for("add_asset_route"))
+
+        try:
+            amount_val = float(amount)
+            interest_rate_val = float(interest_rate) if interest_rate else None
+            maturity_amount_val = float(maturity_amount) if maturity_amount else None
+
+            with get_db() as db:
+                add_asset(db, user_id, asset_type, amount_val, date, description, maturity_date, interest_rate_val, maturity_amount_val)
+            flash("Asset added successfully!", "success")
+            return redirect(url_for("assets"))
+        except ValueError:
+            flash("Invalid numeric value. Please check your amount, interest rate, or maturity amount.", "error")
+            return redirect(url_for("add_asset_route"))
+        except Exception as e:
+            app.logger.error(f"Error adding asset: {e}", exc_info=True)
+            flash(f"An error occurred while adding the asset: {str(e)}", "error")
+            return redirect(url_for("add_asset_route"))
+
+    return render_template("add_asset.html")
+
+@app.route("/assets/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_asset(id):
+    user_id = session["user_id"]
+    with get_db() as db:
+        asset = get_asset_by_id(db, id)
+        if not asset or asset["user_id"] != user_id:
+            flash("Asset not found or unauthorized.", "error")
+            return redirect(url_for("assets"))
+
+        if request.method == "POST":
+            asset_type = request.form.get("type")
+            amount = request.form.get("amount")
+            date = request.form.get("date")
+            description = request.form.get("description")
+            maturity_date = request.form.get("maturity_date")
+            interest_rate = request.form.get("interest_rate")
+            maturity_amount = request.form.get("maturity_amount")
+
+            if not asset_type or not amount or not date:
+                flash("Type, amount, and date are required.", "error")
+                return redirect(url_for("edit_asset", id=id))
+
+            try:
+                amount_val = float(amount)
+                interest_rate_val = float(interest_rate) if interest_rate else None
+                maturity_amount_val = float(maturity_amount) if maturity_amount else None
+
+                if update_asset(db, id, user_id, asset_type, amount_val, date, description, maturity_date, interest_rate_val, maturity_amount_val):
+                    flash("Asset updated successfully!", "success")
+                    return redirect(url_for("assets"))
+                else:
+                    flash("Failed to update asset.", "error")
+                    return redirect(url_for("edit_asset", id=id))
+            except ValueError:
+                flash("Invalid numeric value. Please check your amount, interest rate, or maturity amount.", "error")
+                return redirect(url_for("edit_asset", id=id))
+            except Exception:
+                flash("An error occurred while updating the asset.", "error")
+                return redirect(url_for("edit_asset", id=id))
+
+    return render_template("edit_asset.html", asset=asset)
+
+@app.route("/assets/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_asset_route(id):
+    with get_db() as db:
+        if delete_asset(db, id, session["user_id"]):
+            flash("Asset deleted successfully.", "success")
+        else:
+            flash("Asset not found or unauthorized.", "error")
+    return redirect(url_for("assets"))
+
 if __name__ == "__main__":
+
     with app.app_context():
         init_db()
         seed_db()

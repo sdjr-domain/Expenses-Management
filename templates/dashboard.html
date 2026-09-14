@@ -15,7 +15,7 @@
     </header>
 
     <!-- Summary KPIs -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Spending</p>
             <p class="text-4xl font-bold text-emerald-600">₹{{ "%.2f"|format(summary.total_spend) }}</p>
@@ -27,6 +27,10 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Transactions</p>
             <p class="text-4xl font-bold text-slate-900">{{ expenses|length }}</p>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Assets</p>
+            <p class="text-4xl font-bold text-blue-600">₹{{ "%.2f"|format(total_assets) }}</p>
         </div>
     </div>
 

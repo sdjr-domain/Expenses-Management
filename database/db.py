@@ -145,7 +145,49 @@ def update_category(db, cat_id, user_id, new_name):
     db.commit()
     return cursor.rowcount > 0
 
+def get_asset_by_id(db, asset_id):
+    """Returns an asset record if the ID exists, otherwise None."""
+    return db.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+
+def get_assets(user_id):
+    """Returns all assets for a user, ordered by date."""
+    with get_db() as db:
+        return db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY date DESC", (user_id,)).fetchall()
+
+def add_asset(db, user_id, asset_type, amount, date, description, maturity_date=None, interest_rate=None, maturity_amount=None):
+    """Adds a new asset record for a user."""
+    db.execute(
+        "INSERT INTO assets (user_id, type, amount, date, description, maturity_date, interest_rate, maturity_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, asset_type, amount, date, description, maturity_date, interest_rate, maturity_amount)
+    )
+    db.commit()
+
+def update_asset(db, asset_id, user_id, asset_type, amount, date, description, maturity_date=None, interest_rate=None, maturity_amount=None):
+    """Updates an asset record if it belongs to the specified user."""
+    cursor = db.execute(
+        "UPDATE assets SET type = ?, amount = ?, date = ?, description = ?, maturity_date = ?, interest_rate = ?, maturity_amount = ? WHERE id = ? AND user_id = ?",
+        (asset_type, amount, date, description, maturity_date, interest_rate, maturity_amount, asset_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def delete_asset(db, asset_id, user_id):
+    """Deletes an asset record if it belongs to the specified user."""
+    cursor = db.execute(
+        "DELETE FROM assets WHERE id = ? AND user_id = ?",
+        (asset_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def get_total_assets(user_id):
+    """Returns the total value of all assets for a user."""
+    with get_db() as db:
+        row = db.execute("SELECT SUM(amount) as total FROM assets WHERE user_id = ?", (user_id,)).fetchone()
+        return row["total"] if row["total"] else 0
+
 def ensure_default_categories(user_id):
+
     """Ensures a user has the basic set of default categories."""
     defaults = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
     with get_db() as db:
@@ -187,6 +229,21 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 color TEXT,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS assets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                amount REAL NOT NULL,
+                date TEXT NOT NULL,
+                maturity_date TEXT,
+                interest_rate REAL,
+                maturity_amount REAL,
+                description TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
