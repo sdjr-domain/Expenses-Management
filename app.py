@@ -203,6 +203,7 @@ def dashboard():
                            offset=offset,
                            total_transactions=total_transactions)
 
+
 @app.route("/logout")
 def logout():
     session.clear()

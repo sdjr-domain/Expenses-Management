@@ -67,7 +67,7 @@
                             <div>
                                 <p class="text-sm text-slate-500 mb-2">Net Balance</p>
                                 <p class="text-4xl font-bold serif tracking-tight {% if financial_summary.balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
-                                    {{ "₹%.2f"|format(financial_summary.balance) }}
+                                    ₹{{ financial_summary.balance|indian_format }}
                                 </p>
                             </div>
 
@@ -79,7 +79,7 @@
                                         </div>
                                         <p class="text-xs font-medium text-slate-600">Total Income</p>
                                     </div>
-                                    <p class="font-bold text-emerald-600">+{{ "%.2f"|format(financial_summary.total_income) }}</p>
+                                    <p class="font-bold text-emerald-600">+{{ financial_summary.total_income|indian_format }}</p>
                                 </div>
 
                                 <div class="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100">
@@ -89,16 +89,28 @@
                                         </div>
                                         <p class="text-xs font-medium text-slate-600">Total Expenses</p>
                                     </div>
-                                    <p class="font-bold text-rose-600">-{{ "%.2f"|format(financial_summary.total_expenses) }}</p>
+                                    <p class="font-bold text-rose-600">-{{ financial_summary.total_expenses|indian_format }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Quick Tip Card -->
-                    <div class="mt-6 p-4 bg-slate-900 rounded-2xl text-white shadow-lg shadow-slate-200">
-                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Financial Wisdom</p>
-                        <p class="text-xs leading-relaxed text-slate-300 italic">"{{ pro_tip }}"</p>
+                    <div class="mt-6 bg-amber-50 border-l-4 border-amber-400 border border-amber-100 rounded-2xl p-4 shadow-sm">
+                        <div class="flex items-start gap-3">
+                            <div class="text-amber-500 mt-0.5">
+                                <!-- Sparkle or Lightbulb Icon -->
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0V13H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 18.5 8.13a1 1 0 11-.866 1.8l-4.354-.93-1.18 5.056a1 1 0 01-1.932.42l-1.466-5.87-4.354.93a1 1 0 01-.866-1.8l4.354-.93 1.18-5.056A1 1 0 0112 2z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-bold tracking-wider text-amber-600 uppercase mb-1">Pro Tip</span>
+                                <p class="text-sm leading-relaxed text-amber-900 italic font-medium">
+                                    "{{ pro_tip }}"
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endif %}
