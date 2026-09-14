@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary
 from functools import wraps
 
 # Category color mapping for the UI
@@ -16,6 +16,13 @@ CATEGORY_COLORS = {
 
 app = Flask(__name__)
 app.secret_key = "spendly-secret-key-for-flashing"
+
+@app.context_processor
+def inject_financial_summary():
+    if "user_id" in session:
+        user_id = session["user_id"]
+        return dict(financial_summary=get_financial_summary(user_id))
+    return dict(financial_summary=None)
 
 def login_required(f):
     @wraps(f)
@@ -141,37 +148,46 @@ def profile():
     return render_template("profile.html", user=user, categories=categories)
 
 
-@app.route("/expenses/add", methods=["GET", "POST"])
+@app.route("/transactions/add", methods=["GET", "POST"])
 @login_required
-def add_expense_route():
+def add_transaction_route():
     user_id = session["user_id"]
     ensure_default_categories(user_id)
     if request.method == "POST":
+        transaction_type = request.form.get("type")
         amount = request.form.get("amount")
         category = request.form.get("category")
         date = request.form.get("date")
         description = request.form.get("description")
 
-        if not amount or not category or not date:
-            flash("Amount, category, and date are required.", "error")
-            return redirect(url_for("add_expense_route"))
+        if not amount or not category or not date or not transaction_type:
+            flash("Amount, category, date, and type are required.", "error")
+            return redirect(url_for("add_transaction_route"))
 
         try:
             amount_val = float(amount)
             with get_db() as db:
-                add_expense(db, user_id, amount_val, category, date, description)
-            flash("Expense added successfully!", "success")
+                if transaction_type == "income":
+                    add_income(db, user_id, amount_val, category, date, description)
+                else:
+                    add_expense(db, user_id, amount_val, category, date, description)
+            flash(f"{'Income' if transaction_type == 'income' else 'Expense'} added successfully!", "success")
             return redirect(url_for("dashboard"))
         except ValueError:
             flash("Invalid amount. Please enter a numeric value.", "error")
-            return redirect(url_for("add_expense_route"))
+            return redirect(url_for("add_transaction_route"))
         except Exception as e:
-            app.logger.error(f"Error adding expense: {e}", exc_info=True)
-            flash(f"An error occurred while adding the expense: {str(e)}", "error")
-            return redirect(url_for("add_expense_route"))
+            app.logger.error(f"Error adding transaction: {e}", exc_info=True)
+            flash(f"An error occurred while adding the transaction: {str(e)}", "error")
+            return redirect(url_for("add_transaction_route"))
 
     user_categories = get_user_categories(user_id)
-    return render_template("add_expense.html", user_categories=user_categories)
+    return render_template("add_transaction.html", user_categories=user_categories)
+
+@app.route("/expenses/add", methods=["GET", "POST"])
+@login_required
+def add_expense_route():
+    return redirect(url_for("add_transaction_route"))
 
 
 @app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
@@ -304,8 +320,15 @@ def delete_expense_route(id):
 @login_required
 def assets():
     user_id = session["user_id"]
-    assets_list = get_assets(user_id)
-    return render_template("assets.html", assets=assets_list)
+    asset_type = request.args.get("type")
+    assets_list = get_assets(user_id, asset_type)
+
+    # Get unique asset types for the filter pills
+    with get_db() as db:
+        types = db.execute("SELECT DISTINCT type FROM assets WHERE user_id = ?", (user_id,)).fetchall()
+        asset_types = [row["type"] for row in types]
+
+    return render_template("assets.html", assets=assets_list, current_type=asset_type, asset_types=asset_types)
 
 @app.route("/assets/add", methods=["GET", "POST"])
 @login_required

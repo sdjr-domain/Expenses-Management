@@ -46,9 +46,63 @@
         {% endwith %}
     </div>
 
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
+    <div class="max-w-screen-2xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main class="lg:col-span-9">
+                {% block content %}{% endblock %}
+            </main>
+
+            <aside class="hidden lg:block lg:col-span-3">
+                {% if session.get('user_id') and financial_summary %}
+                <div class="sticky top-8">
+                    <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-100/50 overflow-hidden relative">
+                        <!-- Decorative background element -->
+                        <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 relative z-10">Financial Overview</h3>
+
+                        <div class="space-y-8 relative z-10">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-2">Net Balance</p>
+                                <p class="text-4xl font-bold serif tracking-tight {% if financial_summary.balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                                    {{ "₹%.2f"|format(financial_summary.balance) }}
+                                </p>
+                            </div>
+
+                            <div class="pt-6 border-t border-slate-100 space-y-4">
+                                <div class="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">
+                                            ↓
+                                        </div>
+                                        <p class="text-xs font-medium text-slate-600">Total Income</p>
+                                    </div>
+                                    <p class="font-bold text-emerald-600">+{{ "%.2f"|format(financial_summary.total_income) }}</p>
+                                </div>
+
+                                <div class="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-xs">
+                                            ↑
+                                        </div>
+                                        <p class="text-xs font-medium text-slate-600">Total Expenses</p>
+                                    </div>
+                                    <p class="font-bold text-rose-600">-{{ "%.2f"|format(financial_summary.total_expenses) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Tip Card -->
+                    <div class="mt-6 p-4 bg-slate-900 rounded-2xl text-white shadow-lg shadow-slate-200">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Pro Tip</p>
+                        <p class="text-xs leading-relaxed text-slate-300">Keep your expenses below 50% of your income for a healthy financial future.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
 
     <footer class="border-t border-slate-100 mt-20 py-12 px-6">
         <div class="max-w-7xl mx-auto flex flex-col items-center gap-4 text-center">

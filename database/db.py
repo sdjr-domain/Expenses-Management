@@ -26,6 +26,36 @@ def get_expense_by_id(db, expense_id):
     """Returns an expense record if the ID exists, otherwise None."""
     return db.execute("SELECT * FROM expenses WHERE id = ?", (expense_id,)).fetchone()
 
+def add_income(db, user_id, amount, category, date, description):
+    """Adds a new income record for a user."""
+    db.execute(
+        "INSERT INTO income (user_id, amount, category, date, description) VALUES (?, ?, ?, ?, ?)",
+        (user_id, amount, category, date, description)
+    )
+    db.commit()
+
+def get_total_income(user_id):
+    """Returns the total income for a user."""
+    with get_db() as db:
+        row = db.execute("SELECT SUM(amount) as total FROM income WHERE user_id = ?", (user_id,)).fetchone()
+        return row["total"] if row["total"] else 0
+
+def get_total_expenses(user_id):
+    """Returns the total expenses for a user."""
+    with get_db() as db:
+        row = db.execute("SELECT SUM(amount) as total FROM expenses WHERE user_id = ?", (user_id,)).fetchone()
+        return row["total"] if row["total"] else 0
+
+def get_financial_summary(user_id):
+    """Returns total income, total expenses, and the net balance for a user."""
+    income = get_total_income(user_id)
+    expenses = get_total_expenses(user_id)
+    return {
+        "total_income": income,
+        "total_expenses": expenses,
+        "balance": income - expenses
+    }
+
 def get_spending_summary(user_id):
     """Returns total spending and the top spending category for a user."""
     with get_db() as db:
@@ -149,10 +179,17 @@ def get_asset_by_id(db, asset_id):
     """Returns an asset record if the ID exists, otherwise None."""
     return db.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
 
-def get_assets(user_id):
-    """Returns all assets for a user, ordered by date."""
+def get_assets(user_id, asset_type=None):
+    """Returns assets for a user, optionally filtered by type, ordered by date."""
     with get_db() as db:
-        return db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY date DESC", (user_id,)).fetchall()
+        query = "SELECT * FROM assets WHERE user_id = ?"
+        params = [user_id]
+        if asset_type and asset_type != "All":
+            query += " AND type = ?"
+            params.append(asset_type)
+
+        query += " ORDER BY date DESC"
+        return db.execute(query, params).fetchall()
 
 def add_asset(db, user_id, asset_type, amount, date, description, maturity_date=None, interest_rate=None, maturity_amount=None):
     """Adds a new asset record for a user."""
@@ -209,6 +246,18 @@ def init_db():
                 email TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 created_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS income (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                category TEXT NOT NULL,
+                date TEXT NOT NULL,
+                description TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
         db.execute("""
