@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, add_expense, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category
 from functools import wraps
 
 # Category color mapping for the UI
@@ -142,7 +142,7 @@ def profile():
 
 @app.route("/expenses/add", methods=["GET", "POST"])
 @login_required
-def add_expense():
+def add_expense_route():
     user_id = session["user_id"]
     ensure_default_categories(user_id)
     if request.method == "POST":
@@ -153,7 +153,7 @@ def add_expense():
 
         if not amount or not category or not date:
             flash("Amount, category, and date are required.", "error")
-            return redirect(url_for("add_expense"))
+            return redirect(url_for("add_expense_route"))
 
         try:
             amount_val = float(amount)
@@ -163,10 +163,11 @@ def add_expense():
             return redirect(url_for("dashboard"))
         except ValueError:
             flash("Invalid amount. Please enter a numeric value.", "error")
-            return redirect(url_for("add_expense"))
-        except Exception:
-            flash("An error occurred while adding the expense.", "error")
-            return redirect(url_for("add_expense"))
+            return redirect(url_for("add_expense_route"))
+        except Exception as e:
+            app.logger.error(f"Error adding expense: {e}", exc_info=True)
+            flash(f"An error occurred while adding the expense: {str(e)}", "error")
+            return redirect(url_for("add_expense_route"))
 
     user_categories = get_user_categories(user_id)
     return render_template("add_expense.html", user_categories=user_categories)
@@ -221,7 +222,7 @@ def categories():
 
 @app.route("/categories/add", methods=["POST"])
 @login_required
-def add_category():
+def add_category_route():
     category_name = request.form.get("name")
     if not category_name:
         flash("Category name is required.", "error")
@@ -269,6 +270,18 @@ def edit_category(id):
 def delete_category_route(id):
     user_id = session["user_id"]
     with get_db() as db:
+        # Check if category exists and get its name
+        cat_name = get_category_name(db, id, user_id)
+        if not cat_name:
+            flash("Category not found or unauthorized.", "error")
+            return redirect(url_for("categories"))
+
+        # Check if category has associated expenses
+        expense_count = count_expenses_in_category(db, user_id, cat_name)
+        if expense_count > 0:
+            flash(f"Cannot delete category '{cat_name}' because it has {expense_count} associated expense(s). Please remove or move the expenses first.", "error")
+            return redirect(url_for("categories"))
+
         if delete_category(db, id, user_id):
             flash("Category deleted successfully.", "success")
         else:

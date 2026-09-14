@@ -117,6 +117,16 @@ def get_user_categories(user_id):
             (user_id,)
         ).fetchall()
 
+def get_category_name(db, cat_id, user_id):
+    """Returns the name of a category if it belongs to the specified user."""
+    row = db.execute("SELECT name FROM categories WHERE id = ? AND user_id = ?", (cat_id, user_id)).fetchone()
+    return row["name"] if row else None
+
+def count_expenses_in_category(db, user_id, category_name):
+    """Returns the number of expenses associated with a specific category name for a user."""
+    row = db.execute("SELECT COUNT(*) as count FROM expenses WHERE user_id = ? AND category = ?", (user_id, category_name)).fetchone()
+    return row["count"] if row else 0
+
 def delete_category(db, cat_id, user_id):
     """Deletes a category record if it belongs to the specified user."""
     cursor = db.execute(
