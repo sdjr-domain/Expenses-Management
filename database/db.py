@@ -137,6 +137,117 @@ def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None
 
         return db.execute(query, params).fetchall()
 
+def get_analytics_summary(user_id, start_date, end_date):
+    """Returns a summary of financial KPIs for a user within a date range."""
+    with get_db() as db:
+        # Total Expenses
+        exp_row = db.execute(
+            "SELECT SUM(amount) as total, MAX(amount) as max_val FROM expenses WHERE user_id = ? AND date >= ? AND date <= ?",
+            (user_id, start_date, end_date)
+        ).fetchone()
+        total_expenses = exp_row["total"] if exp_row["total"] else 0
+        largest_transaction = exp_row["max_val"] if exp_row["max_val"] else 0
+
+        # Total Income
+        inc_row = db.execute(
+            "SELECT SUM(amount) as total FROM income WHERE user_id = ? AND date >= ? AND date <= ?",
+            (user_id, start_date, end_date)
+        ).fetchone()
+        total_income = inc_row["total"] if inc_row["total"] else 0
+
+        # Net Savings & Rate
+        net_savings = total_income - total_expenses
+        savings_rate = (net_savings / total_income * 100) if total_income > 0 else 0
+
+        # Avg Daily Spend
+        days_diff = (datetime.strptime(end_date, "%Y-%m-%d") - datetime.strptime(start_date, "%Y-%m-%d")).days + 1
+        avg_daily_spend = total_expenses / days_diff if days_diff > 0 else 0
+
+        # Busiest Day
+        busiest = db.execute(
+            "SELECT date FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY date ORDER BY SUM(amount) DESC LIMIT 1",
+            (user_id, start_date, end_date)
+        ).fetchone()
+        busiest_day = busiest["date"] if busiest else None
+
+        return {
+            "total_expenses": total_expenses,
+            "total_income": total_income,
+            "net_savings": net_savings,
+            "savings_rate": round(savings_rate, 2),
+            "avg_daily_spend": round(avg_daily_spend, 2),
+            "busiest_day": busiest_day,
+            "largest_transaction": largest_transaction
+        }
+
+def get_spending_trends(user_id, start_date, end_date, bucket='day', category=None):
+    """Returns time-series data for income and expenses."""
+    with get_db() as db:
+        # Map bucket to SQLite date modifier
+        # 'day' is just date, 'week' is strftime('%Y-%W'), 'month' is strftime('%Y-%m')
+        fmt = {"day": "%Y-%m-%d", "week": "%Y-%W", "month": "%Y-%m"}.get(bucket, "%Y-%m-%d")
+
+        exp_query = f"SELECT strftime('{fmt}', date) as period, SUM(amount) as total FROM expenses WHERE user_id = ?"
+        exp_params = [user_id]
+        if category and category != "All":
+            exp_query += " AND category = ?"
+            exp_params.append(category)
+        exp_query += f" AND date >= ? AND date <= ? GROUP BY period ORDER BY period ASC"
+        exp_params.extend([start_date, end_date])
+        inc_query = f"SELECT strftime('{fmt}', date) as period, SUM(amount) as total FROM income WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY period ORDER BY period ASC"
+
+        expenses = {row["period"]: row["total"] for row in db.execute(exp_query, exp_params).fetchall()}
+        income = {row["period"]: row["total"] for row in db.execute(inc_query, (user_id, start_date, end_date)).fetchall()}
+
+        # Combine and sort by period
+        all_periods = sorted(set(expenses.keys()) | set(income.keys()))
+        return [{"period": p, "expense": expenses.get(p, 0), "income": income.get(p, 0)} for p in all_periods]
+
+def get_category_distribution(user_id, start_date, end_date):
+    """Returns expense distribution by category."""
+    with get_db() as db:
+        return db.execute(
+            "SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY category ORDER BY total DESC",
+            (user_id, start_date, end_date)
+        ).fetchall()
+
+def get_category_trends(user_id, start_date, end_date):
+    """Returns spending per category per month."""
+    with get_db() as db:
+        return db.execute(
+            "SELECT strftime('%Y-%m', date) as month, category, SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY month, category ORDER BY month ASC",
+            (user_id, start_date, end_date)
+        ).fetchall()
+
+def get_spend_by_day_of_week(user_id, start_date, end_date):
+    """Returns spending aggregated by day of the week (0=Sunday)."""
+    with get_db() as db:
+        # strftime('%w') returns 0-6
+        return db.execute(
+            "SELECT strftime('%w', date) as dow, SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY dow ORDER BY dow ASC",
+            (user_id, start_date, end_date)
+        ).fetchall()
+
+def get_asset_metrics(user_id):
+    """Returns total asset growth and allocation."""
+    with get_db() as db:
+        # Growth over time
+        growth = db.execute(
+            "SELECT date, SUM(amount) OVER (ORDER BY date) as total FROM assets WHERE user_id = ? ORDER BY date ASC",
+            (user_id,)
+        ).fetchall()
+
+        # Allocation by type
+        allocation = db.execute(
+            "SELECT type, SUM(amount) as total FROM assets WHERE user_id = ? GROUP BY type ORDER BY total DESC",
+            (user_id,)
+        ).fetchall()
+
+        return {
+            "growth": [{"date": row["date"], "total": row["total"]} for row in growth],
+            "allocation": [{"type": row["type"], "total": row["total"]} for row in allocation]
+        }
+
 def add_expense(db, user_id, amount, category, date, description):
     """Adds a new expense record for a user."""
     db.execute(

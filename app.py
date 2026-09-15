@@ -1,8 +1,8 @@
 import random
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics
 from functools import wraps
 
 # Category color mapping for the UI
@@ -81,6 +81,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
+            if request.path.startswith("/api/") or request.accepts_json:
+                return jsonify({"error": "Please sign in to access this resource."}), 401
             flash("Please sign in to access this page.", "error")
             return redirect(url_for("login"))
         return f(*args, **kwargs)
@@ -497,7 +499,51 @@ def delete_asset_route(id):
             flash("Asset not found or unauthorized.", "error")
     return redirect(url_for("assets"))
 
+@app.route("/analytics")
+@login_required
+def analytics():
+    return render_template("analytics.html")
+
+@app.route("/api/analytics")
+@login_required
+def analytics_api():
+    user_id = session["user_id"]
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    category = request.args.get("category", "All")
+
+    if not start_date or not end_date:
+        return jsonify({"error": "start_date and end_date are required"}), 400
+
+    try:
+        summary = get_analytics_summary(user_id, start_date, end_date)
+        trends = get_spending_trends(user_id, start_date, end_date, category=category)
+        distribution = get_category_distribution(user_id, start_date, end_date)
+        cat_trends = get_category_trends(user_id, start_date, end_date)
+        dow_spend = get_spend_by_day_of_week(user_id, start_date, end_date)
+        assets_data = get_asset_metrics(user_id)
+
+        with get_db() as db:
+            top_expenses = db.execute(
+                "SELECT date, category, description, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY amount DESC LIMIT 5",
+                (user_id, start_date, end_date)
+            ).fetchall()
+
+        return jsonify({
+            "summary": summary,
+            "trends": trends,
+            "distribution": [dict(row) for row in distribution],
+            "category_trends": [dict(row) for row in cat_trends],
+            "dow_spend": [dict(row) for row in dow_spend],
+            "assets": assets_data,
+            "top_expenses": [dict(row) for row in top_expenses]
+        })
+    except Exception as e:
+        app.logger.error(f"Analytics API error: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
 if __name__ == "__main__":
+
 
     with app.app_context():
         init_db()
