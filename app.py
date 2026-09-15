@@ -66,9 +66,14 @@ def indian_format(value):
 def inject_financial_summary():
     if "user_id" in session:
         user_id = session["user_id"]
+        # Use the pro tip from the session, or pick one if not set (e.g., for existing sessions)
+        pro_tip = session.get("pro_tip")
+        if not pro_tip:
+            pro_tip = random.choice(PRO_TIPS)
+            session["pro_tip"] = pro_tip
         return dict(
             financial_summary=get_financial_summary(user_id),
-            pro_tip=random.choice(PRO_TIPS)
+            pro_tip=pro_tip
         )
     return dict(financial_summary=None, pro_tip=None)
 
@@ -144,6 +149,7 @@ def login():
         user = get_user_by_email(email)
         if user and check_password_hash(user["password_hash"], password):
             session["user_id"] = user["id"]
+            session["pro_tip"] = random.choice(PRO_TIPS)
             flash("Welcome back!", "success")
             return redirect(url_for("dashboard"))
 

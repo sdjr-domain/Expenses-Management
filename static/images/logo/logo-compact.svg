@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Cat wallet symbol">
+<g id="wallet-cards">
+<path id="Vector" d="M7.77 16.8C7.77 16.0574 8.07975 15.3452 8.63111 14.8201C9.18246 14.295 9.93026 14 10.71 14H31.29C32.0697 14 32.8175 14.295 33.3689 14.8201C33.9202 15.3452 34.23 16.0574 34.23 16.8M7.77 19.6H12.18C13.356 19.6 14.532 20.02 15.267 20.86L16.884 22.12C19.236 24.36 22.911 24.36 25.263 22.12L26.88 20.86C27.615 20.16 28.791 19.6 29.967 19.6H34.23M10.71 8.4H31.29C32.9137 8.4 34.23 9.6536 34.23 11.2V30.8C34.23 32.3464 32.9137 33.6 31.29 33.6H10.71C9.08628 33.6 7.77 32.3464 7.77 30.8V11.2C7.77 9.6536 9.08628 8.4 10.71 8.4Z" stroke="#10252B" stroke-linecap="round"/>
+</g>
+<path id="Wallet pocket" d="M7.56 23.1C12.7292 36.54 29.2708 36.54 34.44 23.1" stroke="#10A36D" stroke-width="2.73" stroke-linecap="round"/>
+<circle id="Coin" cx="30.24" cy="19.74" r="3.255" fill="#10A36D" stroke="#10252B" stroke-width="1.05"/>
+<path id="Intelligent eyes" d="M11.76 15.54L15.4622 18.9M22.3378 18.9L26.04 15.54" stroke="white" stroke-width="1.47" stroke-linecap="round"/>
+</g>
+</svg>

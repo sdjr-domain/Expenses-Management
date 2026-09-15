@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Spendly{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <script>
+      if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -14,23 +26,35 @@
     </style>
     {% block head %}{% endblock %}
 </head>
-<body class="bg-white text-slate-900 antialiased">
+<body class="bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-50 antialiased transition-colors duration-300">
 
     <nav class="flex items-center justify-between px-6 py-4 w-full">
-        <a href="{{ url_for('landing') }}" class="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span class="text-emerald-600">◈</span>
-            <span>Spendly</span>
+        <a href="{{ url_for('landing') }}" class="flex items-center gap-3 text-lg font-semibold tracking-tight group">
+            <div class="relative size-[42px] overflow-clip transition-transform duration-200 group-hover:scale-105 logo-container">
+                <!-- Base Logo -->
+                <img src="{{ url_for('static', filename='images/logo/logo-compact.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full dark:hidden">
+                <img src="{{ url_for('static', filename='images/logo/logo-monochrome.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full hidden dark:block">
+
+                <!-- Motion Elements -->
+                <img src="{{ url_for('static', filename='images/logo/motion-halo.svg') }}" alt="" class="absolute inset-0 size-full hidden logo-processing-halo">
+                <img src="{{ url_for('static', filename='images/logo/motion-coin.svg') }}" alt="" class="absolute size-[12px] top-[6px] left-[18px] hidden logo-success-coin">
+            </div>
+            <span class="dark:text-white">Spendly</span>
         </a>
         <div class="flex items-center gap-6">
+            <button id="theme-toggle" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle theme">
+                <svg id="theme-toggle-dark-icon" class="hidden size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM2.12 1.414l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM4.464 14.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM3 11a1 1 0 100-2 1 1 0 000 2zm2.12 1.414l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM10 18a1 1 0 100-2 1 1 0 000 2z"></path></svg>
+            </button>
             {% if session.get('user_id') %}
-                <a href="{{ url_for('dashboard') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Home</a>
-                <a href="{{ url_for('profile') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Profile</a>
-                <a href="{{ url_for('assets') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Assets</a>
-                <a href="{{ url_for('categories') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Categories</a>
-                <a href="{{ url_for('logout') }}" class="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">Sign out</a>
+                <a href="{{ url_for('dashboard') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Home</a>
+                <a href="{{ url_for('profile') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Profile</a>
+                <a href="{{ url_for('assets') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Assets</a>
+                <a href="{{ url_for('categories') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Categories</a>
+                <a href="{{ url_for('logout') }}" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all">Sign out</a>
             {% else %}
-                <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Sign in</a>
-                <a href="{{ url_for('register') }}" class="bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 transition-all">Get started</a>
+                <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Sign in</a>
+                <a href="{{ url_for('register') }}" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all">Get started</a>
             {% endif %}
         </div>
     </nav>
@@ -39,7 +63,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="p-4 mb-4 rounded-lg text-sm font-medium {% if category == 'error' %}bg-red-50 text-red-600 border border-red-100{% else %}bg-emerald-50 text-emerald-600 border border-emerald-100{% endif %}">
+                    <div class="p-4 mb-4 rounded-lg text-sm font-medium {% if category == 'error' %}bg-red-50 text-red-600 border border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800{% else %}bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800{% endif %}">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -53,86 +77,32 @@
                 {% block content %}{% endblock %}
             </main>
 
-            {% block sidebar %}
-            <aside class="hidden lg:block lg:col-span-3">
-                {% if session.get('user_id') and financial_summary %}
-                <div class="sticky top-8">
-                    <div class="p-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-100/50 overflow-hidden relative">
-                        <!-- Decorative background element -->
-                        <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
-
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 relative z-10">Financial Overview</h3>
-
-                        <div class="space-y-8 relative z-10">
-                            <div>
-                                <p class="text-sm text-slate-500 mb-2">Net Balance</p>
-                                <p class="text-4xl font-bold serif tracking-tight {% if financial_summary.balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
-                                    ₹{{ financial_summary.balance|indian_format }}
-                                </p>
-                            </div>
-
-                            <div class="pt-6 border-t border-slate-100 space-y-4">
-                                <div class="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">
-                                            ↓
-                                        </div>
-                                        <p class="text-xs font-medium text-slate-600">Total Income</p>
-                                    </div>
-                                    <p class="font-bold text-emerald-600">+{{ financial_summary.total_income|indian_format }}</p>
-                                </div>
-
-                                <div class="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-xs">
-                                            ↑
-                                        </div>
-                                        <p class="text-xs font-medium text-slate-600">Total Expenses</p>
-                                    </div>
-                                    <p class="font-bold text-rose-600">-{{ financial_summary.total_expenses|indian_format }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Tip Card -->
-                    <div class="mt-6 bg-amber-50 border-l-4 border-amber-400 border border-amber-100 rounded-2xl p-4 shadow-sm">
-                        <div class="flex items-start gap-3">
-                            <div class="text-amber-500 mt-0.5">
-                                <!-- Sparkle or Lightbulb Icon -->
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0V13H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 18.5 8.13a1 1 0 11-.866 1.8l-4.354-.93-1.18 5.056a1 1 0 01-1.932.42l-1.466-5.87-4.354.93a1 1 0 01-.866-1.8l4.354-.93 1.18-5.056A1 1 0 0112 2z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div>
-                                <span class="block text-[10px] font-bold tracking-wider text-amber-600 uppercase mb-1">Pro Tip</span>
-                                <p class="text-sm leading-relaxed text-amber-900 italic font-medium">
-                                    "{{ pro_tip }}"
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </aside>
-            {% endblock %}
+            {% block sidebar %}{% endblock %}
         </div>
     </div>
 
-    <footer class="border-t border-slate-100 mt-20 py-12 px-6">
+    <footer class="border-t border-slate-100 dark:border-slate-800 mt-20 py-12 px-6">
         <div class="w-full flex flex-col items-center gap-4 text-center">
-            <div class="flex items-center gap-2 text-lg font-semibold">
-                <span class="text-emerald-600">◈</span>
-                <span>Spendly</span>
+            <div class="flex items-center gap-3 text-lg font-semibold">
+                <div class="relative size-[42px] overflow-clip logo-container group">
+                    <!-- Base Logo -->
+                    <img src="{{ url_for('static', filename='images/logo/logo-primary.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full dark:hidden">
+                    <img src="{{ url_for('static', filename='images/logo/logo-monochrome.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full hidden dark:block">
+
+                    <!-- Motion Elements -->
+                    <img src="{{ url_for('static', filename='images/logo/motion-halo.svg') }}" alt="" class="absolute inset-0 size-full hidden logo-processing-halo">
+                    <img src="{{ url_for('static', filename='images/logo/motion-coin.svg') }}" alt="" class="absolute size-[12px] top-[6px] left-[18px] hidden logo-success-coin">
+                </div>
+                <span class="dark:text-white">Spendly</span>
             </div>
-            <p class="text-slate-500 text-sm">Track every rupee. Own your finances.</p>
-            <div class="flex gap-6 text-sm text-slate-400">
-                <a href="#" class="hover:text-slate-600 transition-colors">Chat</a>
-                <a href="{{ url_for('terms') }}" class="hover:text-slate-600 transition-colors">Terms and Conditions</a>
-                <a href="{{ url_for('privacy') }}" class="hover:text-slate-600 transition-colors">Privacy Policy</a>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">Track every rupee. Own your finances.</p>
+            <div class="flex gap-6 text-sm text-slate-400 dark:text-slate-500">
+                <a href="#" class="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Chat</a>
+                <a href="{{ url_for('terms') }}" class="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Terms and Conditions</a>
+                <a href="{{ url_for('privacy') }}" class="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">Privacy Policy</a>
             </div>
             <!-- Debug Session Status -->
-            <div class="text-[10px] text-slate-300 mt-4">
+            <div class="text-[10px] text-slate-300 dark:text-slate-600 mt-4">
                 Session ID: {{ session.get('user_id', 'None') }}
             </div>
         </div>

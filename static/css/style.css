@@ -10,8 +10,9 @@
     --paper: #f7f6f3;
     --paper-warm: #f0ede6;
     --paper-card: #ffffff;
-    --accent: #1a472a;
-    --accent-light: #e8f0eb;
+    --accent: #10a36d;
+    --accent-light: #ddf6ec;
+    --accent-dark: #10252b;
     --accent-2: #c17f24;
     --accent-2-light: #fdf3e3;
     --danger: #c0392b;
@@ -19,8 +20,8 @@
     --border: #e4e1da;
     --border-soft: #eeebe4;
 
-    --font-display: 'DM Serif Display', Georgia, serif;
-    --font-body: 'DM Sans', system-ui, sans-serif;
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
 
     --max-width: 1200px;
     --auth-width: 440px;
@@ -527,4 +528,53 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 600px) {
     .nav-links a:not(.nav-cta) { display: none; }
     .hero { padding: 3rem 1rem 2rem; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion System                                                        */
+/* ------------------------------------------------------------------ */
+
+.logo-container {
+    transition: transform 0.2s ease-out;
+}
+.logo-container:hover {
+    transform: scale(1.05);
+}
+
+/* Loading: Fade upward 6px */
+.logo-loading {
+    animation: logo-fade-up 0.65s ease-out forwards;
+}
+@keyframes logo-fade-up {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Processing: Breathing halo */
+.logo-processing-halo {
+    animation: halo-breath 1.8s ease-in-out infinite;
+}
+@keyframes halo-breath {
+    0%, 100% { opacity: 0.14; transform: scale(0.88); }
+    50% { opacity: 0.34; transform: scale(1.04); }
+}
+
+/* Success: Coin glide */
+.logo-success-coin {
+    animation: coin-glide 0.7s ease-in-out forwards;
+}
+@keyframes coin-glide {
+    0% { transform: translate(0, 0); opacity: 1; }
+    30% { transform: translate(0, 0); opacity: 1; }
+    70% { transform: translate(-71px, 42px); opacity: 0; }
+    100% { transform: translate(-71px, 42px); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark Mode Adjustments                                               */
+/* ------------------------------------------------------------------ */
+
+.dark .category-badge {
+    filter: brightness(0.8) contrast(1.2);
+    border-color: rgba(255, 255, 255, 0.1) !important;
 }

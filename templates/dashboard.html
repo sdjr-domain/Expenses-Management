@@ -2,50 +2,111 @@
 
 {% block title %}Dashboard — Spendly{% endblock %}
 
+{% block sidebar %}
+<aside class="hidden lg:block lg:col-span-3">
+    {% if session.get('user_id') and financial_summary %}
+    <div class="sticky top-8">
+        <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden relative">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 relative z-10">Financial Overview</h3>
+
+            <div class="space-y-8 relative z-10">
+                <div>
+                    <p class="text-sm text-slate-500 mb-2">Net Balance</p>
+                    <p class="text-4xl font-bold serif tracking-tight {% if financial_summary.balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">
+                        ₹{{ financial_summary.balance|indian_format }}
+                    </p>
+                </div>
+
+                <div class="pt-6 border-t border-slate-100 space-y-4">
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">
+                                ↓
+                            </div>
+                            <p class="text-xs font-medium text-slate-600">Total Income</p>
+                        </div>
+                        <p class="font-bold text-emerald-600">+{{ financial_summary.total_income|indian_format }}</p>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-xs">
+                                ↑
+                            </div>
+                            <p class="text-xs font-medium text-slate-600">Total Expenses</p>
+                        </div>
+                        <p class="font-bold text-rose-600">-{{ financial_summary.total_expenses|indian_format }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tip Card -->
+        <div class="mt-6 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-400 border border-amber-100 dark:border-amber-800 rounded-2xl p-4 shadow-sm">
+            <div class="flex items-start gap-3">
+                <div class="text-amber-500 mt-0.5">
+                    <!-- Sparkle or Lightbulb Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V13H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 18.5 8.13a1 1 0 11-.866 1.8l-4.354-.93-1.18 5.056a1 1 0 01-1.932.42l-1.466-5.87-4.354.93a1 1 0 01-.866-1.8l4.354-.93 1.18-5.056A1 1 0 0112 2z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-bold tracking-wider text-amber-600 dark:text-amber-400 uppercase mb-1">Pro Tip</span>
+                    <p class="text-sm leading-relaxed text-amber-900 dark:text-amber-200 italic font-medium">
+                        "{{ pro_tip }}"
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</aside>
+{% endblock %}
+
 {% block content %}
 <div class="px-6 py-8 min-h-screen">
     <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div class="flex-shrink-0 max-w-xl w-full md:w-auto">
-            <h1 class="serif text-4xl text-slate-900 mb-2 leading-tight">Your Spending Overview</h1>
-            <p class="text-slate-500 leading-normal md:min-w-[300px]">Track your finances and spot spending patterns.</p>
+            <h1 class="serif text-4xl text-slate-900 dark:text-white mb-2 leading-tight">Your Spending Overview</h1>
+            <p class="text-slate-500 dark:text-slate-400 leading-normal md:min-w-[300px]">Track your finances and spot spending patterns.</p>
         </div>
-        <a href="{{ url_for('add_transaction_route') }}" class="bg-slate-900 text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 shrink-0">
+        <a href="{{ url_for('add_transaction_route') }}" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-6 py-3 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all flex items-center justify-center gap-2 shrink-0">
             <span>+ Add Transaction</span>
         </a>
     </header>
 
     <!-- Summary KPIs -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Spending</p>
-            <p class="text-2xl md:text-4xl font-bold text-emerald-600">₹{{ summary.total_spend | indian_format }}</p>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Total Spending</p>
+            <p class="text-2xl md:text-4xl font-bold text-emerald-600 dark:text-emerald-400">₹{{ summary.total_spend | indian_format }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Category</p>
-            <p class="text-2xl md:text-4xl font-bold text-slate-900">{{ summary.top_category }}</p>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Top Category</p>
+            <p class="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white">{{ summary.top_category }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Transactions</p>
-            <p class="text-2xl md:text-4xl font-bold text-slate-900">{{ total_transactions | indian_format }}</p>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Total Transactions</p>
+            <p class="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white">{{ total_transactions | indian_format }}</p>
         </div>
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total Assets</p>
-            <p class="text-2xl md:text-4xl font-bold text-blue-600">₹{{ total_assets | indian_format }}</p>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Total Assets</p>
+            <p class="text-2xl md:text-4xl font-bold text-blue-600 dark:text-blue-400">₹{{ total_assets | indian_format }}</p>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Category Breakdown -->
         <div class="lg:col-span-1">
-            <h2 class="serif text-2xl text-slate-900 mb-6">Category Breakdown</h2>
+            <h2 class="serif text-2xl text-slate-900 dark:text-white mb-6">Category Breakdown</h2>
             <div class="space-y-4">
                 {% for cat in categories %}
-                <div class="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center justify-between group">
-                    <a href="{{ url_for('dashboard', category=cat.category) }}" class="text-xs font-medium px-2 py-1 rounded-full border {{ category_colors.get(cat.category, category_colors['Other']) }} hover:opacity-80 transition-opacity">
+                <a href="{{ url_for('dashboard', category=cat.category) }}" class="rounded-xl p-4 flex items-center justify-between group transition-all border {{ 'bg-slate-900 text-white border-slate-900 shadow-md dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100' if request.args.get('category') == cat.category else 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700' }}">
+                    <span class="text-xs font-medium px-2 py-1 rounded-full border {{ category_colors.get(cat.category, category_colors['Other']) }} hover:opacity-80 transition-opacity category-badge">
                         {{ cat.category }}
-                    </a>
-                    <span class="text-sm font-bold text-slate-900">₹{{ cat.total | indian_format }}</span>
-                </div>
+                    </span>
+                    <span class="text-sm font-bold">₹{{ cat.total | indian_format }}</span>
+                </a>
                 {% endfor %}
                 {% if not categories %}
                 <p class="text-sm text-slate-500 italic">No spending data available.</p>
@@ -56,26 +117,26 @@
         <!-- Filterable Transactions -->
         <div class="lg:col-span-2">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="serif text-2xl text-slate-900">Transactions</h2>
+                <h2 class="serif text-2xl text-slate-900 dark:text-white">Transactions</h2>
                 <form method="GET" class="flex flex-wrap items-center gap-3">
-                    <select name="category" class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                    <select name="category" class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                         <option value="All" {% if request.args.get('category') == 'All' or not request.args.get('category') %}selected{% endif %}>All Categories</option>
                         {% for cat in user_categories %}
                         <option value="{{ cat.name }}" {% if request.args.get('category') == cat.name %}selected{% endif %}>{{ cat.name }}</option>
                         {% endfor %}
                     </select>
-                    <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
-                    <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}" class="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
-                    <button type="submit" class="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-all">Filter</button>
-                    <a href="{{ url_for('dashboard') }}" class="text-sm text-slate-500 hover:text-slate-900 underline decoration-slate-200">Reset</a>
+                    <input type="date" name="start_date" value="{{ request.args.get('start_date', '') }}" class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                    <input type="date" name="end_date" value="{{ request.args.get('end_date', '') }}" class="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                    <button type="submit" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all">Filter</button>
+                    <a href="{{ url_for('dashboard') }}" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white underline decoration-slate-200 dark:decoration-slate-700 transition-colors">Reset</a>
                 </form>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
                 <table class="w-full table-fixed text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 border-b border-slate-200">
-                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                        <tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                                 <a href="{{ url_for('dashboard', category=request.args.get('category'), start_date=request.args.get('start_date'), end_date=request.args.get('end_date'), sort='date_desc' if request.args.get('sort') == 'date_asc' else 'date_asc') }}" class="hover:text-slate-900 transition-colors inline-flex items-center gap-1">
                                     Date
                                     {% if request.args.get('sort') == 'date_asc' %}
@@ -87,9 +148,9 @@
                                     {% endif %}
                                 </a>
                             </th>
-                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
-                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Description</th>
-                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right whitespace-nowrap">
+                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+                            <th class="w-40 px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right whitespace-nowrap">
                                 <a href="{{ url_for('dashboard', category=request.args.get('category'), start_date=request.args.get('start_date'), end_date=request.args.get('end_date'), sort='amount_desc' if request.args.get('sort') == 'amount_asc' else 'amount_asc') }}" class="hover:text-slate-900 transition-colors inline-flex items-center justify-end gap-1">
                                     Amount
                                     {% if request.args.get('sort') == 'amount_asc' %}
@@ -104,17 +165,17 @@
                             <th class="w-32 px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for expense in expenses %}
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{{ expense.date }}</td>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ expense.date }}</td>
                             <td class="px-6 py-4">
-                                <span class="text-xs font-medium px-2 py-1 rounded-full border {{ category_colors.get(expense.category, category_colors['Other']) }}">
+                                <span class="text-xs font-medium px-2 py-1 rounded-full border {{ category_colors.get(expense.category, category_colors['Other']) }} category-badge">
                                     {{ expense.category }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-sm text-slate-600 truncate">{{ expense.description }}</td>
-                            <td class="px-6 py-4 text-sm font-bold text-slate-900 text-right whitespace-nowrap">₹{{ expense.amount | indian_format }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 truncate">{{ expense.description }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-slate-900 dark:text-white text-right whitespace-nowrap">₹{{ expense.amount | indian_format }}</td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
                                 <div class="flex items-center gap-2">
                                     <a href="{{ url_for('edit_expense', id=expense.id) }}" title="Edit expense" class="text-slate-400 hover:text-emerald-600 transition-colors p-1">
@@ -142,8 +203,8 @@
                         {% endif %}
                     </tbody>
                     {% if total_count > expenses|length %}
-                    <tfoot class="bg-slate-50 border-t border-slate-200">
-                        <tr class="hover:bg-slate-50 transition-colors">
+                    <tfoot class="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                             <td colspan="5" class="px-6 py-4">
                                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <!-- Page Size Selector -->
