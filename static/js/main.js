@@ -1,4 +1,34 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Global Gold Coin Effect
+    const globalCoinField = document.getElementById('global-coin-field');
+    if (globalCoinField) {
+        new GoldCoinField(globalCoinField, {
+            coinCount: 46,
+            currencySymbol: '₹'
+        });
+    }
+
+    // Coin Effect Toggle Logic
+    const coinToggleInput = document.getElementById('coin-toggle');
+    if (coinToggleInput) {
+        const updateCoinVisibility = (enabled) => {
+            const field = document.getElementById('global-coin-field');
+            if (field) {
+                field.style.display = enabled ? 'block' : 'none';
+            }
+            coinToggleInput.checked = enabled;
+        };
+
+        let coinsEnabled = localStorage.getItem('coins-enabled') !== 'false';
+        updateCoinVisibility(coinsEnabled);
+
+        coinToggleInput.addEventListener('change', () => {
+            coinsEnabled = coinToggleInput.checked;
+            localStorage.setItem('coins-enabled', coinsEnabled);
+            updateCoinVisibility(coinsEnabled);
+        });
+    }
+
     const themeToggleBtn = document.getElementById('theme-toggle');
     const darkIcon = document.getElementById('theme-toggle-dark-icon');
     const lightIcon = document.getElementById('theme-toggle-light-icon');
