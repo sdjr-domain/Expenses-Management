@@ -8,26 +8,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Coin Effect Toggle Logic
+    // Initialize Global Ember Effect
+    const globalEmberField = document.getElementById('global-ember-field');
+    if (globalEmberField) {
+        new EmberField(globalEmberField, {
+            emberCount: 90
+        });
+    }
+
+    // Animation Toggle Logic (Mutually Exclusive)
     const coinToggleInput = document.getElementById('coin-toggle');
-    if (coinToggleInput) {
-        const updateCoinVisibility = (enabled) => {
-            const field = document.getElementById('global-coin-field');
-            if (field) {
-                field.style.display = enabled ? 'block' : 'none';
-            }
-            coinToggleInput.checked = enabled;
+    const emberToggleInput = document.getElementById('ember-toggle');
+
+    if (coinToggleInput && emberToggleInput) {
+        const updateVisibility = (coinsEnabled, embersEnabled) => {
+            const coinField = document.getElementById('global-coin-field');
+            const emberField = document.getElementById('global-ember-field');
+
+            if (coinField) coinField.style.display = coinsEnabled ? 'block' : 'none';
+            if (emberField) emberField.style.display = embersEnabled ? 'block' : 'none';
+
+            coinToggleInput.checked = coinsEnabled;
+            emberToggleInput.checked = embersEnabled;
         };
 
+        // Load initial states
         let coinsEnabled = localStorage.getItem('coins-enabled') !== 'false';
-        updateCoinVisibility(coinsEnabled);
+        let embersEnabled = localStorage.getItem('embers-enabled') === 'true';
+
+        // Ensure only one is enabled on load
+        if (embersEnabled) coinsEnabled = false;
+
+        updateVisibility(coinsEnabled, embersEnabled);
 
         coinToggleInput.addEventListener('change', () => {
             coinsEnabled = coinToggleInput.checked;
+            if (coinsEnabled) {
+                embersEnabled = false;
+                emberToggleInput.checked = false;
+                localStorage.setItem('embers-enabled', 'false');
+            }
             localStorage.setItem('coins-enabled', coinsEnabled);
-            updateCoinVisibility(coinsEnabled);
+            updateVisibility(coinsEnabled, embersEnabled);
+        });
+
+        emberToggleInput.addEventListener('change', () => {
+            embersEnabled = emberToggleInput.checked;
+            if (embersEnabled) {
+                coinsEnabled = false;
+                coinToggleInput.checked = false;
+                localStorage.setItem('coins-enabled', 'false');
+            }
+            localStorage.setItem('embers-enabled', embersEnabled);
+            updateVisibility(coinsEnabled, embersEnabled);
         });
     }
+
 
     const themeToggleBtn = document.getElementById('theme-toggle');
     const darkIcon = document.getElementById('theme-toggle-dark-icon');
