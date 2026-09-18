@@ -1,6 +1,6 @@
 import random
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, Blueprint
 from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics
 from functools import wraps
@@ -28,6 +28,365 @@ PRO_TIPS = [
     "Don't save what is left after spending; spend what is left after saving. 🎯",
     "A budget isn't a restriction; it's a blueprint for your freedom. 🗽"
 ]
+
+# API Blueprint for React migration
+api_bp = Blueprint('api', __name__, url_prefix='/api/v1')
+
+def json_response(data=None, status=200, error=None):
+    """Standardized JSON response helper."""
+    response = {}
+    if error:
+        response["error"] = error
+    if data is not None:
+        response["data"] = data
+    return jsonify(response), status
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            if request.path.startswith("/api/") or request.accepts_json:
+                return json_response(error="Please sign in to access this resource.", status=401)
+            flash("Please sign in to access this page.", "error")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@api_bp.route("/auth/register", methods=["POST"])
+def api_register():
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    name = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
+    confirm_password = data.get("confirm_password")
+
+    if not name or not email or not password or not confirm_password:
+        return json_response(error="All fields are required.", status=400)
+
+    if password != confirm_password:
+        return json_response(error="Passwords do not match.", status=400)
+
+    if get_user_by_email(email):
+        return json_response(error="This email is already registered.", status=400)
+
+    try:
+        password_hash = generate_password_hash(password)
+        with get_db() as db:
+            db.execute(
+                "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+                (name, email, password_hash)
+            )
+            db.commit()
+        return json_response(data={"message": "Account created successfully!"}, status=201)
+    except Exception as e:
+        app.logger.error(f"API Register error: {e}", exc_info=True)
+        return json_response(error="An unexpected error occurred.", status=500)
+
+@api_bp.route("/auth/login", methods=["POST"])
+def api_login():
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return json_response(error="All fields are required.", status=400)
+
+    user = get_user_by_email(email)
+    if user and check_password_hash(user["password_hash"], password):
+        session["user_id"] = user["id"]
+        session["pro_tip"] = random.choice(PRO_TIPS)
+        return json_response(data={"message": "Welcome back!", "user": {"name": user["name"], "email": user["email"]}})
+
+    return json_response(error="Invalid email or password.", status=401)
+
+@api_bp.route("/profile")
+@login_required
+def api_profile():
+    user_id = session.get("user_id")
+    user = get_user_by_id(user_id)
+    categories = get_user_categories(user_id)
+    return json_response(data={
+        "user": user,
+        "categories": categories
+    })
+
+@api_bp.route("/dashboard")
+@login_required
+def api_dashboard():
+    user_id = session["user_id"]
+    ensure_default_categories(user_id)
+    category = request.args.get("category")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    sort = request.args.get("sort")
+
+    try:
+        limit = int(request.args.get("limit", 10))
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        limit = 10
+        offset = 0
+
+    summary = get_spending_summary(user_id)
+    categories = get_category_totals(user_id)
+    total_expenses = get_filtered_expenses_count(user_id, category, start_date, end_date)
+    expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort, limit=limit, offset=offset)
+    total_transactions = get_total_transaction_count(user_id)
+    user_categories = get_user_categories(user_id)
+    total_assets = get_total_assets(user_id)
+
+    return json_response(data={
+        "summary": summary,
+        "categories": categories,
+        "expenses": expenses,
+        "category_colors": CATEGORY_COLORS,
+        "user_categories": user_categories,
+        "total_assets": total_assets,
+        "total_count": total_expenses,
+        "limit": limit,
+        "offset": offset,
+        "total_transactions": total_transactions
+    })
+
+@api_bp.route("/transactions", methods=["POST"])
+@login_required
+def api_add_transaction():
+    user_id = session["user_id"]
+    ensure_default_categories(user_id)
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    transaction_type = data.get("type")
+    amount = data.get("amount")
+    category = data.get("category")
+    date = data.get("date")
+    description = data.get("description")
+
+    if not amount or not category or not date or not transaction_type:
+        return json_response(error="Amount, category, date, and type are required.", status=400)
+
+    try:
+        amount_val = float(amount)
+        with get_db() as db:
+            if transaction_type == "income":
+                add_income(db, user_id, amount_val, category, date, description)
+            else:
+                add_expense(db, user_id, amount_val, category, date, description)
+        return json_response(data={"message": f"{'Income' if transaction_type == 'income' else 'Expense'} added successfully!"})
+    except ValueError:
+        return json_response(error="Invalid amount. Please enter a numeric value.", status=400)
+    except Exception as e:
+        app.logger.error(f"API Add Transaction error: {e}", exc_info=True)
+        return json_response(error=f"An error occurred: {str(e)}", status=500)
+
+@api_bp.route("/expenses/<int:id>/edit", methods=["POST"])
+@login_required
+def api_edit_expense(id):
+    user_id = session["user_id"]
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    amount = data.get("amount")
+    category = data.get("category")
+    date = data.get("date")
+    description = data.get("description")
+
+    if not amount or not category or not date:
+        return json_response(error="Amount, category, and date are required.", status=400)
+
+    try:
+        amount_val = float(amount)
+        with get_db() as db:
+            if update_expense(db, id, user_id, amount_val, category, date, description):
+                return json_response(data={"message": "Expense updated successfully!"})
+            else:
+                return json_response(error="Failed to update expense.", status=400)
+    except ValueError:
+        return json_response(error="Invalid amount. Please enter a numeric value.", status=400)
+    except Exception as e:
+        app.logger.error(f"API Edit Expense error: {e}", exc_info=True)
+        return json_response(error=f"An error occurred: {str(e)}", status=500)
+
+@api_bp.route("/expenses/<int:id>/delete", methods=["POST"])
+@login_required
+def api_delete_expense(id):
+    with get_db() as db:
+        if delete_expense(db, id, session["user_id"]):
+            return json_response(data={"message": "Expense deleted successfully."})
+        else:
+            return json_response(error="Expense not found or unauthorized.", status=400)
+
+@api_bp.route("/categories")
+@login_required
+def api_categories():
+    user_id = session["user_id"]
+    user_categories = get_user_categories(user_id)
+    return json_response(data=user_categories)
+
+@api_bp.route("/categories/add", methods=["POST"])
+@login_required
+def api_add_category():
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    category_name = data.get("name")
+    if not category_name:
+        return json_response(error="Category name is required.", status=400)
+
+    user_id = session["user_id"]
+    with get_db() as db:
+        exists = db.execute("SELECT 1 FROM categories WHERE user_id = ? AND name = ?", (user_id, category_name)).fetchone()
+        if exists:
+            return json_response(error="Category already exists.", status=400)
+        add_category(db, user_id, category_name)
+
+    return json_response(data={"message": f"Category '{category_name}' added successfully!"}, status=201)
+
+@api_bp.route("/categories/edit/<int:id>", methods=["POST"])
+@login_required
+def api_edit_category(id):
+    user_id = session["user_id"]
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    new_name = data.get("name")
+    if not new_name:
+        return json_response(error="Category name is required.", status=400)
+
+    with get_db() as db:
+        if update_category(db, id, user_id, new_name):
+            return json_response(data={"message": "Category updated successfully!"})
+        else:
+            return json_response(error="Failed to update category.", status=400)
+
+@api_bp.route("/categories/delete/<int:id>", methods=["POST"])
+@login_required
+def api_delete_category(id):
+    user_id = session["user_id"]
+    with get_db() as db:
+        cat_name = get_category_name(db, id, user_id)
+        if not cat_name:
+            return json_response(error="Category not found or unauthorized.", status=400)
+
+        expense_count = count_expenses_in_category(db, user_id, cat_name)
+        if expense_count > 0:
+            return json_response(error=f"Cannot delete category '{cat_name}' because it has {expense_count} associated expense(s).", status=400)
+
+        if delete_category(db, id, user_id):
+            return json_response(data={"message": "Category deleted successfully."})
+        else:
+            return json_response(error="Category not found or unauthorized.", status=400)
+
+@api_bp.route("/assets")
+@login_required
+def api_assets():
+    user_id = session["user_id"]
+    asset_type = request.args.get("type")
+    assets_list = get_assets(user_id, asset_type)
+
+    with get_db() as db:
+        types = db.execute("SELECT DISTINCT type FROM assets WHERE user_id = ?", (user_id,)).fetchall()
+        asset_types = [row["type"] for row in types]
+
+    return json_response(data={
+        "assets": assets_list,
+        "asset_types": asset_types,
+        "current_type": asset_type
+    })
+
+@api_bp.route("/assets/add", methods=["POST"])
+@login_required
+def api_add_asset():
+    user_id = session["user_id"]
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    asset_type = data.get("type")
+    amount = data.get("amount")
+    date = data.get("date")
+    description = data.get("description")
+    maturity_date = data.get("maturity_date")
+    interest_rate = data.get("interest_rate")
+    maturity_amount = data.get("maturity_amount")
+
+    if not asset_type or not amount or not date:
+        return json_response(error="Type, amount, and date are required.", status=400)
+
+    try:
+        amount_val = float(amount)
+        interest_rate_val = float(interest_rate) if interest_rate else None
+        maturity_amount_val = float(maturity_amount) if maturity_amount else None
+
+        with get_db() as db:
+            add_asset(db, user_id, asset_type, amount_val, date, description, maturity_date, interest_rate_val, maturity_amount_val)
+        return json_response(data={"message": "Asset added successfully!"}, status=201)
+    except ValueError:
+        return json_response(error="Invalid numeric value.", status=400)
+    except Exception as e:
+        app.logger.error(f"API Add Asset error: {e}", exc_info=True)
+        return json_response(error=f"An error occurred: {str(e)}", status=500)
+
+@api_bp.route("/assets/<int:id>/edit", methods=["POST"])
+@login_required
+def api_edit_asset(id):
+    user_id = session["user_id"]
+    data = request.get_json()
+    if not data:
+        return json_response(error="Missing request body", status=400)
+
+    asset_type = data.get("type")
+    amount = data.get("amount")
+    date = data.get("date")
+    description = data.get("description")
+    maturity_date = data.get("maturity_date")
+    interest_rate = data.get("interest_rate")
+    maturity_amount = data.get("maturity_amount")
+
+    if not asset_type or not amount or not date:
+        return json_response(error="Type, amount, and date are required.", status=400)
+
+    try:
+        amount_val = float(amount)
+        interest_rate_val = float(interest_rate) if interest_rate else None
+        maturity_amount_val = float(maturity_amount) if maturity_amount else None
+
+        with get_db() as db:
+            if update_asset(db, id, user_id, asset_type, amount_val, date, description, maturity_date, interest_rate_val, maturity_amount_val):
+                return json_response(data={"message": "Asset updated successfully!"})
+            else:
+                return json_response(error="Failed to update asset.", status=400)
+    except ValueError:
+        return json_response(error="Invalid numeric value.", status=400)
+    except Exception as e:
+        app.logger.error(f"API Edit Asset error: {e}", exc_info=True)
+        return json_response(error=f"An error occurred: {str(e)}", status=500)
+
+@api_bp.route("/assets/<int:id>/delete", methods=["POST"])
+@login_required
+def api_delete_asset(id):
+    with get_db() as db:
+        if delete_asset(db, id, session["user_id"]):
+            return json_response(data={"message": "Asset deleted successfully."})
+        else:
+            return json_response(error="Asset not found or unauthorized.", status=400)
+
+
+
+
+
+
+
 
 @app.template_filter('indian_format')
 def indian_format(value):
@@ -76,17 +435,6 @@ def inject_financial_summary():
             pro_tip=pro_tip
         )
     return dict(financial_summary=None, pro_tip=None)
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
-            if request.path.startswith("/api/") or request.accepts_json:
-                return jsonify({"error": "Please sign in to access this resource."}), 401
-            flash("Please sign in to access this page.", "error")
-            return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated_function
 
 
 # ------------------------------------------------------------------ #
@@ -504,16 +852,16 @@ def delete_asset_route(id):
 def analytics():
     return render_template("analytics.html")
 
-@app.route("/api/analytics")
+@api_bp.route("/analytics")
 @login_required
-def analytics_api():
+def api_analytics():
     user_id = session["user_id"]
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     category = request.args.get("category", "All")
 
     if not start_date or not end_date:
-        return jsonify({"error": "start_date and end_date are required"}), 400
+        return json_response(error="start_date and end_date are required", status=400)
 
     try:
         summary = get_analytics_summary(user_id, start_date, end_date)
@@ -529,7 +877,7 @@ def analytics_api():
                 (user_id, start_date, end_date)
             ).fetchall()
 
-        return jsonify({
+        return json_response(data={
             "summary": summary,
             "trends": trends,
             "distribution": [dict(row) for row in distribution],
@@ -539,12 +887,11 @@ def analytics_api():
             "top_expenses": [dict(row) for row in top_expenses]
         })
     except Exception as e:
-        app.logger.error(f"Analytics API error: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error"}), 500
+        app.logger.error(f"API Analytics error: {e}", exc_info=True)
+        return json_response(error="Internal server error", status=500)
 
 if __name__ == "__main__":
-
-
+    app.register_blueprint(api_bp)
     with app.app_context():
         init_db()
         seed_db()
