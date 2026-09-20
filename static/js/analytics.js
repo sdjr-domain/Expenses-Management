@@ -74,19 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!cards) return;
         if (show) {
             cards.innerHTML = `
-                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
                     <div class="h-4 w-24 skeleton rounded"></div>
                     <div class="h-8 w-32 skeleton rounded"></div>
                 </div>
-                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
                     <div class="h-4 w-24 skeleton rounded"></div>
                     <div class="h-8 w-32 skeleton rounded"></div>
                 </div>
-                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
                     <div class="h-4 w-24 skeleton rounded"></div>
                     <div class="h-8 w-32 skeleton rounded"></div>
                 </div>
-                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
                     <div class="h-4 w-24 skeleton rounded"></div>
                     <div class="h-8 w-32 skeleton rounded"></div>
                 </div>
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         container.innerHTML = cards.map(card => `
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
                 <p class="text-xs font-medium text-slate-500 dark:text-slate-400">${card.label}</p>
                 <p class="text-2xl font-bold ${card.color} dark:text-white mt-1">${card.value}</p>
             </div>

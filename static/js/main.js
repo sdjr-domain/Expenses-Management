@@ -1,53 +1,37 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Global Gold Coin Effect
-    const globalCoinField = document.getElementById('global-coin-field');
-    if (globalCoinField) {
-        new GoldCoinField(globalCoinField, {
-            coinCount: 46,
-            currencySymbol: '₹'
-        });
+    // Initialize Background Animation Manager
+    const animationContainer = document.getElementById('global-animation-field');
+    let animationManager = null;
+    if (animationContainer) {
+        animationManager = new BackgroundAnimationManager(animationContainer);
+        animationManager.register('embers', EmberAnimation);
     }
 
-    // Coin Effect Toggle Logic
-    const coinToggleInput = document.getElementById('coin-toggle');
-    if (coinToggleInput) {
-        const updateCoinVisibility = (enabled) => {
-            const field = document.getElementById('global-coin-field');
-            if (field) {
-                field.style.display = enabled ? 'block' : 'none';
+    // Ember Effect Toggle Logic
+    const emberToggleInput = document.getElementById('coin-toggle');
+    if (emberToggleInput && animationManager) {
+        const updateEmberVisibility = (enabled) => {
+            if (enabled) {
+                animationManager.startAnimation('embers');
+            } else {
+                animationManager.stopAll();
             }
-            coinToggleInput.checked = enabled;
+            emberToggleInput.checked = enabled;
         };
 
-        let coinsEnabled = localStorage.getItem('coins-enabled') !== 'false';
-        updateCoinVisibility(coinsEnabled);
+        let embersEnabled = localStorage.getItem('embers-enabled') !== 'false';
+        updateEmberVisibility(embersEnabled);
 
-        coinToggleInput.addEventListener('change', () => {
-            coinsEnabled = coinToggleInput.checked;
-            localStorage.setItem('coins-enabled', coinsEnabled);
-            updateCoinVisibility(coinsEnabled);
+        emberToggleInput.addEventListener('change', () => {
+            embersEnabled = emberToggleInput.checked;
+            localStorage.setItem('embers-enabled', embersEnabled);
+            updateEmberVisibility(embersEnabled);
         });
     }
 
     const themeToggleBtn = document.getElementById('theme-toggle');
-    const darkIcon = document.getElementById('theme-toggle-dark-icon');
-    const lightIcon = document.getElementById('theme-toggle-light-icon');
 
     if (!themeToggleBtn) return;
-
-    // Function to update icons based on current theme
-    const updateIcons = () => {
-        if (document.documentElement.classList.contains('dark')) {
-            darkIcon.classList.add('hidden');
-            lightIcon.classList.remove('hidden');
-        } else {
-            darkIcon.classList.remove('hidden');
-            lightIcon.classList.add('hidden');
-        }
-    };
-
-    // Initialize icons
-    updateIcons();
 
     themeToggleBtn.addEventListener('click', () => {
         // Toggle the dark class on the html element
@@ -58,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.documentElement.classList.add('dark');
             localStorage.setItem('color-theme', 'dark');
         }
-        updateIcons();
     });
+
 });
 
 /**

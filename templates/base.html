@@ -23,6 +23,21 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         h1, h2, .serif { font-family: 'Playfair Display', serif; }
+
+        .theme-toggle-container {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark .theme-toggle-container {
+            transform: rotate(360deg);
+        }
+        .theme-core {
+            transition: fill 0.5s ease, r 0.5s ease, filter 0.5s ease;
+            filter: drop-shadow(0 0 2px rgba(248, 250, 252, 0.2));
+        }
+        .dark .theme-core {
+            fill: #f8fafc; /* slate-50 */
+            filter: drop-shadow(0 0 4px rgba(248, 250, 252, 0.8));
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -46,19 +61,36 @@
                 <label class="relative inline-flex items-center cursor-pointer group">
                     <input type="checkbox" id="coin-toggle" class="sr-only peer">
                     <div class="w-11 h-6 bg-slate-200 rounded-full peer dark:bg-slate-800 peer-checked:bg-emerald-500 transition-all duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all duration-300 peer-checked:after:translate-x-full shadow-inner"></div>
-                    <span class="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">Coins</span>
+                    <span class="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">Embers</span>
                 </label>
-                <button id="theme-toggle" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle theme">
-                    <svg id="theme-toggle-dark-icon" class="hidden size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                    <svg id="theme-toggle-light-icon" class="hidden size-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM2.12 1.414l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM4.464 14.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM3 11a1 1 0 100-2 1 1 0 000 2zm2.12 1.414l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM10 18a1 1 0 100-2 1 1 0 000 2z"></path></svg>
-                </button>
+        <button id="theme-toggle" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle theme">
+            <div class="relative size-5 transition-transform duration-500 theme-toggle-container">
+                <svg viewBox="0 0 20 20" class="size-full fill-current">
+                    <!-- Sun Rays -->
+                    <g class="sun-rays origin-center transition-all duration-500 rotate-0 dark:rotate-90 dark:opacity-0">
+                        <rect x="9.5" y="2" width="1" height="2" rx="0.5"></rect>
+                        <rect x="9.5" y="16" width="1" height="2" rx="0.5"></rect>
+                        <rect x="2" y="9.5" width="2" height="1" rx="0.5"></rect>
+                        <rect x="16" y="9.5" width="2" height="1" rx="0.5"></rect>
+                        <rect x="4.5" y="4.5" width="1" height="2" rx="0.5" transform="rotate(45 5 5)"></rect>
+                        <rect x="13.5" y="4.5" width="1" height="2" rx="0.5" transform="rotate(45 15 5)"></rect>
+                        <rect x="4.5" y="13.5" width="1" height="2" rx="0.5" transform="rotate(45 5 15)"></rect>
+                        <rect x="13.5" y="13.5" width="1" height="2" rx="0.5" transform="rotate(45 15 15)"></rect>
+                    </g>
+                    <!-- The Core -->
+                    <circle cx="10" cy="10" r="5" class="theme-core transition-all duration-500"></circle>
+                    <!-- The Mask (Creates the crescent) -->
+                    <circle cx="13" cy="7" r="5" class="theme-mask fill-white dark:fill-slate-950 transition-all duration-500 translate-x-4 -translate-y-4 scale-0 dark:translate-x-0 dark:translate-y-0 dark:scale-100"></circle>
+                </svg>
+            </div>
+        </button>
             </div>
             {% if session.get('user_id') %}
-                <a href="{{ url_for('dashboard') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Home</a>
-                <a href="{{ url_for('profile') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Profile</a>
-                <a href="{{ url_for('assets') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Assets</a>
-                <a href="{{ url_for('analytics') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Analytics</a>
-                <a href="{{ url_for('categories') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Categories</a>
+                <a href="{{ url_for('dashboard') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'dashboard' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Home</a>
+                <a href="{{ url_for('profile') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'profile' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Profile</a>
+                <a href="{{ url_for('assets') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'assets' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Assets</a>
+                <a href="{{ url_for('analytics') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'analytics' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Analytics</a>
+                <a href="{{ url_for('categories') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'categories' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Categories</a>
                 <a href="{{ url_for('logout') }}" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all">Sign out</a>
             {% else %}
                 <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">Sign in</a>
@@ -67,7 +99,7 @@
         </div>
     </nav>
 
-    <div id="global-coin-field" class="fixed inset-0 -z-10 pointer-events-none"></div>
+    <div id="global-animation-field" class="fixed inset-0 -z-10 pointer-events-none"></div>
 
     <div class="w-full px-6 py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -118,7 +150,8 @@
         </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='js/gold-coin-field.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/background-animation-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ember-animation.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
