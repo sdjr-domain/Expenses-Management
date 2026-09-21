@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Spending Limits — Spendly{% endblock %}
+
+{% block content %}
+<div class="px-6 py-8 min-h-screen relative z-10 w-full">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div class="flex-shrink-0 max-w-xl w-full md:w-auto">
+            <h1 class="serif text-4xl text-slate-900 dark:text-white mb-2 leading-tight">Spending Limits</h1>
+            <p class="text-slate-500 dark:text-slate-400 leading-normal md:min-w-[300px]">Define your monthly budget per category. Use fixed amounts or percentages of last month's income.</p>
+        </div>
+
+        <!-- Salary Context Card -->
+        <div class="bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex items-center gap-4 shrink-0">
+            <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">Last Month's Total Salary</p>
+                <p class="text-xl font-bold text-slate-900 dark:text-white">{{ '₹' + prev_salary|indian_format if prev_salary > 0 else 'No salary record found' }}</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Limits Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div class="lg:col-span-4">
+            <div class="bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-100/50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limit Type</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limit Value</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Calculated Limit</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                            {% for item in limits %}
+                            <tr class="hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors">
+                                <td class="px-6 py-4">
+                                    <span class="font-semibold text-slate-900 dark:text-white">{{ item.category }}</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if item.limit_type %}
+                                        <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' if item.limit_type == 'fixed' else 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' }}">
+                                            {{ 'Fixed Amount' if item.limit_type == 'fixed' else 'Percentage' }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-slate-400 dark:text-slate-500 italic text-sm">No limit set</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 font-medium text-slate-600 dark:text-slate-300">
+                                    {{ item.display_limit if item.display_limit else '—' }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if item.calculated_limit is not none %}
+                                        <span class="font-bold text-slate-900 dark:text-white">₹{{ item.calculated_limit|indian_format }}</span>
+                                    {% else %}
+                                        <span class="text-slate-400 dark:text-slate-500">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <button onclick="openLimitModal('{{ item.category }}', '{{ item.limit_type or '' }}', '{{ item.limit_value or '' }}')" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm font-semibold transition-colors">
+                                        Edit Limit
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Limit Edit Modal -->
+<div id="limitModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden transform transition-all scale-95 opacity-0" id="modalContent">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">Set Limit for <span id="modalCategory" class="text-emerald-600 dark:text-emerald-400"></span></h3>
+            <button onclick="closeLimitModal()" class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <form action="{{ url_for('update_limit') }}" method="POST" class="p-6 space-y-6">
+            <input type="hidden" name="category" id="formCategory">
+
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limit Type</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="relative flex items-center justify-center px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white cursor-pointer transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group">
+                        <input type="radio" name="limit_type" value="fixed" onchange="toggleLimitInput()" class="sr-only peer" {% if 'fixed' == 'fixed' %} checked {% endif %}>
+                        <span class="text-sm font-medium peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 transition-colors">Fixed Amount</span>
+                        <div class="absolute inset-0 rounded-xl border-2 border-transparent peer-checked:border-emerald-500 pointer-events-none"></div>
+                    </label>
+                    <label class="relative flex items-center justify-center px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white cursor-pointer transition-all hover:border-emerald-500 dark:hover:border-emerald-500 group">
+                        <input type="radio" name="limit_type" value="percentage" onchange="toggleLimitInput()" class="sr-only peer">
+                        <span class="text-sm font-medium peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 transition-colors">Percentage</span>
+                        <div class="absolute inset-0 rounded-xl border-2 border-transparent peer-checked:border-emerald-500 pointer-events-none"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label id="limitValueLabel" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Limit Amount (₹)</label>
+                <input type="number" step="0.01" name="limit_value" id="formLimitValue" required placeholder="e.g. 5000" class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none">
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeLimitModal()" class="flex-1 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-lg shadow-slate-900/10">Save Limit</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    function openLimitModal(category, type, value) {
+        document.getElementById('modalCategory').textContent = category;
+        document.getElementById('formCategory').value = category;
+
+        const fixedRadio = document.querySelector('input[name="limit_type"][value="fixed"]');
+        const percentageRadio = document.querySelector('input[name="limit_type"][value="percentage"]');
+
+        if (type === 'percentage') {
+            percentageRadio.checked = true;
+        } else {
+            fixedRadio.checked = true;
+        }
+
+        document.getElementById('formLimitValue').value = value || '';
+
+        toggleLimitInput();
+
+        const modal = document.getElementById('limitModal');
+        const content = document.getElementById('modalContent');
+
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+
+    function closeLimitModal() {
+        const modal = document.getElementById('limitModal');
+        const content = document.getElementById('modalContent');
+
+        content.classList.add('scale-95', 'opacity-0');
+        content.classList.remove('scale-100', 'opacity-100');
+
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+
+    function toggleLimitInput() {
+        const limitType = document.querySelector('input[name="limit_type"]:checked')?.value;
+        const label = document.getElementById('limitValueLabel');
+        const input = document.getElementById('formLimitValue');
+
+        if (limitType === 'percentage') {
+            label.textContent = 'Percentage (%)';
+            input.placeholder = 'e.g. 10';
+        } else {
+            label.textContent = 'Limit Amount (₹)';
+            input.placeholder = 'e.g. 5000';
+        }
+    }
+</script>
+{% endblock %}
+{% endblock %}

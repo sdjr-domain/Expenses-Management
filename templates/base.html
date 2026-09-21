@@ -24,6 +24,16 @@
         body { font-family: 'Inter', sans-serif; }
         h1, h2, .serif { font-family: 'Playfair Display', serif; }
 
+        /* Force solid background for dropdown options to prevent transparency */
+        select option {
+            background-color: white !important;
+            color: #0f172a !important; /* slate-900 */
+        }
+        .dark select option {
+            background-color: #1e293b !important; /* slate-800 */
+            color: #f8fafc !important; /* slate-50 */
+        }
+
         .theme-toggle-container {
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -89,6 +99,7 @@
                 <a href="{{ url_for('dashboard') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'dashboard' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Home</a>
                 <a href="{{ url_for('profile') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'profile' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Profile</a>
                 <a href="{{ url_for('assets') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'assets' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Assets</a>
+                <a href="{{ url_for('limits') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'limits' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Limits</a>
                 <a href="{{ url_for('analytics') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'analytics' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Analytics</a>
                 <a href="{{ url_for('categories') }}" class="text-sm transition-colors {{ 'text-emerald-600 dark:text-emerald-400 font-bold' if request.endpoint == 'categories' else 'font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' }}">Categories</a>
                 <a href="{{ url_for('logout') }}" class="bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-all">Sign out</a>
@@ -115,7 +126,7 @@
 
     <div class="w-full px-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <main class="lg:col-span-9">
+            <main class="lg:col-span-12">
                 {% block content %}{% endblock %}
             </main>
 

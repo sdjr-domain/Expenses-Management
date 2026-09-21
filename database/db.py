@@ -34,6 +34,28 @@ def add_income(db, user_id, amount, category, date, description):
     )
     db.commit()
 
+def update_income(db, income_id, user_id, amount, category, date, description):
+    """Updates an income record if it belongs to the specified user."""
+    cursor = db.execute(
+        "UPDATE income SET amount = ?, category = ?, date = ?, description = ? WHERE id = ? AND user_id = ?",
+        (amount, category, date, description, income_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def delete_income(db, income_id, user_id):
+    """Deletes an income record if it belongs to the specified user."""
+    cursor = db.execute(
+        "DELETE FROM income WHERE id = ? AND user_id = ?",
+        (income_id, user_id)
+    )
+    db.commit()
+    return cursor.rowcount > 0
+
+def get_income_by_id(db, income_id):
+    """Returns an income record if the ID exists, otherwise None."""
+    return db.execute("SELECT * FROM income WHERE id = ?", (income_id,)).fetchone()
+
 def get_total_income(user_id):
     """Returns the total income for a user."""
     with get_db() as db:
@@ -102,40 +124,51 @@ def get_filtered_expenses_count(user_id, category=None, start_date=None, end_dat
         row = db.execute(query, params).fetchone()
         return row["count"] if row else 0
 
-def get_filtered_expenses(user_id, category=None, start_date=None, end_date=None, sort=None, limit=None, offset=None):
-    """Returns a list of expenses for a user with optional filters, sorting, and pagination."""
+def get_all_transactions(user_id, category=None, start_date=None, end_date=None, sort=None, limit=None, offset=None):
+    """Returns a combined list of income and expenses for a user with optional filters, sorting, and pagination."""
     with get_db() as db:
-        query = "SELECT * FROM expenses WHERE user_id = ?"
-        params = [user_id]
+        # We use a UNION ALL to combine income and expenses
+        # We add a 'type' column to distinguish between the two
+        query = """
+            SELECT 'income' as type, id, amount, category, date, description FROM income WHERE user_id = ?
+            UNION ALL
+            SELECT 'expense' as type, id, amount, category, date, description FROM expenses WHERE user_id = ?
+        """
+        params = [user_id, user_id]
+
+        # To apply filters and sorting to the combined result, we wrap it in a subquery
+        filtered_query = f"SELECT * FROM ({query}) AS transactions WHERE 1=1"
+
         if category and category != "All":
-            query += " AND category = ?"
+            filtered_query += " AND category = ?"
             params.append(category)
         if start_date:
-            query += " AND date >= ?"
+            filtered_query += " AND date >= ?"
             params.append(start_date)
         if end_date:
-            query += " AND date <= ?"
+            filtered_query += " AND date <= ?"
             params.append(end_date)
 
         if sort == "amount_asc":
-            query += " ORDER BY amount ASC"
+            filtered_query += " ORDER BY amount ASC"
         elif sort == "amount_desc":
-            query += " ORDER BY amount DESC"
+            filtered_query += " ORDER BY amount DESC"
         elif sort == "date_asc":
-            query += " ORDER BY date ASC"
+            filtered_query += " ORDER BY date ASC"
         elif sort == "date_desc":
-            query += " ORDER BY date DESC"
+            filtered_query += " ORDER BY date DESC"
         else:
-            query += " ORDER BY date DESC"
+            filtered_query += " ORDER BY date DESC"
 
         if limit is not None:
-            query += " LIMIT ?"
+            filtered_query += " LIMIT ?"
             params.append(limit)
         if offset is not None:
-            query += " OFFSET ?"
+            filtered_query += " OFFSET ?"
             params.append(offset)
 
-        return db.execute(query, params).fetchall()
+        return db.execute(filtered_query, params).fetchall()
+
 
 def get_analytics_summary(user_id, start_date, end_date):
     """Returns a summary of financial KPIs for a user within a date range."""
@@ -204,12 +237,37 @@ def get_spending_trends(user_id, start_date, end_date, bucket='day', category=No
         return [{"period": p, "expense": expenses.get(p, 0), "income": income.get(p, 0)} for p in all_periods]
 
 def get_category_distribution(user_id, start_date, end_date):
-    """Returns expense distribution by category."""
+    """Returns expense distribution by category, including categories with zero spend."""
     with get_db() as db:
-        return db.execute(
+        # First, get all categories the user has
+        user_cats = db.execute("SELECT name FROM categories WHERE user_id = ?", (user_id,)).fetchall()
+        cat_names = [row["name"] for row in user_cats]
+
+        # Now get the actual spend
+        spend_data = db.execute(
             "SELECT category, SUM(amount) as total, COUNT(*) as count FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY category ORDER BY total DESC",
             (user_id, start_date, end_date)
         ).fetchall()
+
+        # Create a map for quick lookup
+        spend_map = {row["category"]: row for row in spend_data}
+
+        # Return all user categories, filling in 0 for those without spend
+        results = []
+        for name in cat_names:
+            if name in spend_map:
+                results.append(spend_map[name])
+            else:
+                # Create a row-like object (sqlite3.Row replacement)
+                # Using a simple dict since fetchall() returns a list of Rows, but the app handles dicts in API
+                results.append({
+                    "category": name,
+                    "total": 0,
+                    "count": 0
+                })
+
+        # Sort by total descending, then by name
+        return sorted(results, key=lambda x: (-x["total"], x["category"]))
 
 def get_category_trends(user_id, start_date, end_date):
     """Returns spending per category per month."""
@@ -247,6 +305,40 @@ def get_asset_metrics(user_id):
             "growth": [{"date": row["date"], "total": row["total"]} for row in growth],
             "allocation": [{"type": row["type"], "total": row["total"]} for row in allocation]
         }
+
+def get_previous_month_salary(user_id):
+    """Sums all income for the previous calendar month."""
+    today = datetime.now()
+    first_of_this_month = today.replace(day=1)
+    last_month_date = first_of_this_month - timedelta(days=1)
+
+    start_date = last_month_date.replace(day=1).strftime("%Y-%m-%d")
+    end_date = last_month_date.strftime("%Y-%m-%d")
+
+    with get_db() as db:
+        row = db.execute(
+            "SELECT SUM(amount) as total FROM income WHERE user_id = ? AND date BETWEEN ? AND ?",
+            (user_id, start_date, end_date)
+        ).fetchone()
+        return row["total"] if row["total"] else 0
+
+def set_category_limit(user_id, category_name, limit_type, limit_value):
+    """Saves or updates a limit for a specific category."""
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO category_limits (user_id, category_name, limit_type, limit_value, updated_at) \
+             VALUES (?, ?, ?, ?, datetime('now')) \
+             ON CONFLICT(user_id, category_name) DO UPDATE SET \
+             limit_type=excluded.limit_type, limit_value=excluded.limit_value, updated_at=excluded.updated_at",
+            (user_id, category_name, limit_type, limit_value)
+        )
+        db.commit()
+
+def get_user_limits(user_id):
+    """Retrieves all category limits for a user."""
+    with get_db() as db:
+        return db.execute("SELECT * FROM category_limits WHERE user_id = ?", (user_id,)).fetchall()
+
 
 def add_expense(db, user_id, amount, category, date, description):
     """Adds a new expense record for a user."""
@@ -437,6 +529,18 @@ def init_db():
                 description TEXT,
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS category_limits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                category_name TEXT NOT NULL,
+                limit_type TEXT NOT NULL,
+                limit_value REAL NOT NULL,
+                updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                UNIQUE(user_id, category_name)
             )
         """)
         db.commit()

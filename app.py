@@ -2,7 +2,7 @@ import random
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_filtered_expenses, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_all_transactions, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics, get_previous_month_salary, set_category_limit, get_user_limits, get_income_by_id, update_income, delete_income
 from functools import wraps
 
 # Category color mapping for the UI
@@ -81,7 +81,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
-            if request.path.startswith("/api/") or request.accepts_json:
+            if request.path.startswith("/api/") or (request.content_type and "application/json" in request.content_type):
                 return jsonify({"error": "Please sign in to access this resource."}), 401
             flash("Please sign in to access this page.", "error")
             return redirect(url_for("login"))
@@ -189,11 +189,25 @@ def dashboard():
         offset = 0
 
     summary = get_spending_summary(user_id)
-    categories = get_category_totals(user_id)
+
+    # Merge all user categories with their total spend to ensure zero-spend categories are visible
+    user_categories_list = get_user_categories(user_id)
+    spend_totals = {row["category"]: row["total"] for row in get_category_totals(user_id)}
+
+    categories = []
+    for cat in user_categories_list:
+        name = cat["name"]
+        categories.append({
+            "category": name,
+            "total": spend_totals.get(name, 0)
+        })
+
+    # Sort by total descending, then by name ascending
+    categories.sort(key=lambda x: (-x["total"], x["category"]))
 
     # Get total count for pagination
     total_expenses = get_filtered_expenses_count(user_id, category, start_date, end_date)
-    expenses = get_filtered_expenses(user_id, category, start_date, end_date, sort, limit=limit, offset=offset)
+    expenses = get_all_transactions(user_id, category, start_date, end_date, sort, limit=limit, offset=offset)
     total_transactions = get_total_transaction_count(user_id)
 
     user_categories = get_user_categories(user_id)
@@ -287,19 +301,42 @@ def edit_expense(id):
             category = request.form.get("category")
             date = request.form.get("date")
             description = request.form.get("description")
+            transaction_type = request.form.get("type")
 
-            if not amount or not category or not date:
-                flash("Amount, category, and date are required.", "error")
+            if not amount or not category or not date or not transaction_type:
+                flash("Amount, category, date, and type are required.", "error")
                 return redirect(url_for("edit_expense", id=id))
 
             try:
                 amount_val = float(amount)
-                if update_expense(db, id, user_id, amount_val, category, date, description):
-                    flash("Expense updated successfully!", "success")
+
+                # Handle transaction type change:
+                # If the type changed, we must delete from one table and add to the other.
+                # We need to know the ORIGINAL type.
+                # Since expenses table only contains expenses, if it was in 'expenses', it was an expense.
+                # BUT the user might be editing an income record via this route?
+                # No, this route is explicitly /expenses/<id>/edit.
+
+                # To support changing type from Expense to Income, we need to handle the movement.
+                # However, the `get_expense_by_id` specifically looks in the `expenses` table.
+
+                # If the user changes type to 'income':
+                if transaction_type == "income":
+                    # 1. Delete from expenses
+                    delete_expense(db, id, user_id)
+                    # 2. Add to income
+                    add_income(db, user_id, amount_val, category, date, description)
+                    flash("Transaction converted to Income successfully!", "success")
                     return redirect(url_for("dashboard"))
                 else:
-                    flash("Failed to update expense.", "error")
-                    return redirect(url_for("edit_expense", id=id))
+                    # Just update existing expense
+                    if update_expense(db, id, user_id, amount_val, category, date, description):
+                        flash("Expense updated successfully!", "success")
+                        return redirect(url_for("dashboard"))
+                    else:
+                        flash("Failed to update expense.", "error")
+                        return redirect(url_for("edit_expense", id=id))
+
             except ValueError:
                 flash("Invalid amount. Please enter a numeric value.", "error")
                 return redirect(url_for("edit_expense", id=id))
@@ -393,6 +430,67 @@ def delete_expense_route(id):
             flash("Expense deleted successfully.", "success")
         else:
             flash("Expense not found or unauthorized.", "error")
+    return redirect(url_for("dashboard"))
+
+@app.route("/income/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_income(id):
+    user_id = session["user_id"]
+    user_categories = get_user_categories(user_id)
+    with get_db() as db:
+        income = get_income_by_id(db, id)
+
+        if not income or income["user_id"] != user_id:
+            flash("Income record not found or unauthorized.", "error")
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            amount = request.form.get("amount")
+            category = request.form.get("category")
+            date = request.form.get("date")
+            description = request.form.get("description")
+            transaction_type = request.form.get("type")
+
+            if not amount or not category or not date or not transaction_type:
+                flash("Amount, category, date, and type are required.", "error")
+                return redirect(url_for("edit_income", id=id))
+
+            try:
+                amount_val = float(amount)
+
+                if transaction_type == "expense":
+                    # Convert Income to Expense
+                    delete_income(db, id, user_id)
+                    add_expense(db, user_id, amount_val, category, date, description)
+                    flash("Transaction converted to Expense successfully!", "success")
+                    return redirect(url_for("dashboard"))
+                else:
+                    # Update existing income
+                    if update_income(db, id, user_id, amount_val, category, date, description):
+                        flash("Income updated successfully!", "success")
+                        return redirect(url_for("dashboard"))
+                    else:
+                        flash("Failed to update income.", "error")
+                        return redirect(url_for("edit_income", id=id))
+
+            except ValueError:
+                flash("Invalid amount. Please enter a numeric value.", "error")
+                return redirect(url_for("edit_income", id=id))
+            except Exception:
+                flash("An error occurred while updating the income.", "error")
+                return redirect(url_for("edit_income", id=id))
+
+    return render_template("edit_income.html", income=income, user_categories=user_categories)
+
+
+@app.route("/income/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_income_route(id):
+    with get_db() as db:
+        if delete_income(db, id, session["user_id"]):
+            flash("Income deleted successfully.", "success")
+        else:
+            flash("Income record not found or unauthorized.", "error")
     return redirect(url_for("dashboard"))
 
 
@@ -542,10 +640,147 @@ def analytics_api():
         app.logger.error(f"Analytics API error: {e}", exc_info=True)
         return jsonify({"error": "Internal server error"}), 500
 
+@app.route("/limits")
+@login_required
+def limits():
+    user_id = session["user_id"]
+
+    # Fetch current limits and salary context
+    user_limits = {row["category_name"]: row for row in get_user_limits(user_id)}
+    prev_salary = get_previous_month_salary(user_id)
+
+    # We use the standard categories to ensure every category is shown
+    # categories are derived from get_user_categories to support custom ones
+    user_categories = get_user_categories(user_id)
+
+    limit_data = []
+    for cat in user_categories:
+        name = cat["name"]
+        limit_row = user_limits.get(name)
+
+        if limit_row:
+            l_type = limit_row["limit_type"]
+            l_val = limit_row["limit_value"]
+
+            if l_type == "fixed":
+                calculated_limit = l_val
+                display_limit = f"₹{l_val:,.2f}"
+            else: # percentage
+                calculated_limit = (l_val / 100) * prev_salary
+                display_limit = f"{l_val}%"
+
+            limit_data.append({
+                "category": name,
+                "limit_type": l_type,
+                "limit_value": l_val,
+                "calculated_limit": calculated_limit,
+                "display_limit": display_limit
+            })
+        else:
+            limit_data.append({
+                "category": name,
+                "limit_type": None,
+                "limit_value": None,
+                "calculated_limit": None,
+                "display_limit": "No limit set"
+            })
+
+    return render_template("limits.html", limits=limit_data, prev_salary=prev_salary)
+
+@app.route("/limits/update", methods=["POST"])
+@login_required
+def update_limit():
+    user_id = session["user_id"]
+    category = request.form.get("category")
+    limit_type = request.form.get("limit_type")
+    limit_value = request.form.get("limit_value")
+
+    if not category or not limit_type or not limit_value:
+        flash("All fields are required to update a limit.", "error")
+        return redirect(url_for("limits"))
+
+    try:
+        val = float(limit_value)
+        set_category_limit(user_id, category, limit_type, val)
+        flash(f"Limit for {category} updated successfully!", "success")
+    except ValueError:
+        flash("Invalid limit value. Please enter a number.", "error")
+
+    return redirect(url_for("limits"))
+
 if __name__ == "__main__":
-
-
     with app.app_context():
         init_db()
         seed_db()
     app.run(debug=True, port=5001)
+
+@app.route("/expenses/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_expense_route(id):
+    with get_db() as db:
+        if delete_expense(db, id, session["user_id"]):
+            flash("Expense deleted successfully.", "success")
+        else:
+            flash("Expense not found or unauthorized.", "error")
+    return redirect(url_for("dashboard"))
+
+@app.route("/income/<int:id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_income(id):
+    user_id = session["user_id"]
+    user_categories = get_user_categories(user_id)
+    with get_db() as db:
+        income = get_income_by_id(db, id)
+
+        if not income or income["user_id"] != user_id:
+            flash("Income not found or unauthorized.", "error")
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            amount = request.form.get("amount")
+            category = request.form.get("category")
+            date = request.form.get("date")
+            description = request.form.get("description")
+            transaction_type = request.form.get("type")
+
+            if not amount or not category or not date or not transaction_type:
+                flash("Amount, category, date, and type are required.", "error")
+                return redirect(url_for("edit_income", id=id))
+
+            try:
+                amount_val = float(amount)
+
+                if transaction_type == "expense":
+                    # Convert to expense: delete from income, add to expenses
+                    delete_income(db, id, user_id)
+                    add_expense(db, user_id, amount_val, category, date, description)
+                    flash("Transaction converted to Expense successfully!", "success")
+                    return redirect(url_for("dashboard"))
+                else:
+                    # Update existing income
+                    if update_income(db, id, user_id, amount_val, category, date, description):
+                        flash("Income updated successfully!", "success")
+                        return redirect(url_for("dashboard"))
+                    else:
+                        flash("Failed to update income.", "error")
+                        return redirect(url_for("edit_income", id=id))
+
+            except ValueError:
+                flash("Invalid amount. Please enter a numeric value.", "error")
+                return redirect(url_for("edit_income", id=id))
+            except Exception:
+                flash("An error occurred while updating the income.", "error")
+                return redirect(url_for("edit_income", id=id))
+
+    return render_template("edit_income.html", income=income, user_categories=user_categories)
+
+
+@app.route("/income/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_income_route(id):
+    with get_db() as db:
+        if delete_income(db, id, session["user_id"]):
+            flash("Income deleted successfully.", "success")
+        else:
+            flash("Income not found or unauthorized.", "error")
+    return redirect(url_for("dashboard"))
