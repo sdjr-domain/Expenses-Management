@@ -27,10 +27,12 @@
         :root {
             --logo-main: #10252B;
             --logo-accent: #10A36D;
+            --logo-eye-color: #1E293B;
         }
         .dark {
             --logo-main: #f8fafc;
             --logo-accent: #10A36D;
+            --logo-eye-color: #FFFFFF;
         }
 
         /* Logo Motion System */
@@ -127,12 +129,16 @@
             transform: rotate(360deg);
         }
         .theme-core {
-            transition: fill 0.5s ease, r 0.5s ease, filter 0.5s ease;
+            transition: fill 0.5s ease, r 0.5s ease, filter 0.5s ease, transform 0.3s ease;
             filter: drop-shadow(0 0 2px rgba(248, 250, 252, 0.2));
         }
         .dark .theme-core {
             fill: #f8fafc; /* slate-50 */
             filter: drop-shadow(0 0 4px rgba(248, 250, 252, 0.8));
+        }
+        .theme-toggle-btn:hover .theme-core {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 6px var(--logo-accent));
         }
     </style>
     {% block head %}{% endblock %}
@@ -166,7 +172,7 @@
                     <div class="w-11 h-6 bg-slate-200 rounded-full peer dark:bg-slate-800 peer-checked:bg-emerald-500 transition-all duration-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all duration-300 peer-checked:after:translate-x-full shadow-inner"></div>
                     <span class="ml-2 text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">Embers</span>
                 </label>
-        <button id="theme-toggle" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle theme">
+        <button id="theme-toggle" class="theme-toggle-btn p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle theme" aria-label="Toggle dark mode">
             <div class="relative size-5 transition-transform duration-500 theme-toggle-container">
                 <svg viewBox="0 0 20 20" class="size-full fill-current">
                     <!-- Sun Rays -->
@@ -238,7 +244,7 @@
                             </g>
                             <path id="wallet-pocket" d="M7.56 23.1C12.7292 36.54 29.2708 36.54 34.44 23.1" stroke="var(--logo-accent)" stroke-width="2.73" stroke-linecap="round" />
                             <circle id="logo-coin" cx="30.24" cy="19.74" r="3.255" fill="var(--logo-accent)" stroke="var(--logo-main)" stroke-width="1.05" />
-                            <path id="logo-eyes" d="M11.76 15.54L15.4622 18.9M22.3378 18.9L26.04 15.54" stroke="white" stroke-width="1.47" stroke-linecap="round" />
+                            <path id="logo-eyes" d="M11.76 15.54L15.4622 18.9M22.3378 18.9L26.04 15.54" stroke="var(--logo-eye-color)" stroke-width="1.47" stroke-linecap="round" />
                         </g>
                         <g id="logo-motion-overlay" class="opacity-0 transition-opacity duration-300">
                             <circle cx="21" cy="21" r="18" stroke="var(--logo-accent)" stroke-width="1" fill="none" class="animate-[logo-orbit_2s_linear_infinite]" stroke-dasharray="4 8" />
