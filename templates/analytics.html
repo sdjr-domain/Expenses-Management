@@ -8,7 +8,7 @@
     .chart-container {
         position: relative;
         margin: auto;
-        height: 300px;
+        height: 120px;
         width: 100%;
         display: block;
     }
@@ -29,12 +29,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-8" id="analytics-page">
+<div class="space-y-6" id="analytics-page">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-            <h1 class="text-4xl font-bold text-slate-900 dark:text-white">Your Spending Overview</h1>
-            <p class="text-slate-500 dark:text-slate-400 mt-2">Analyze your finances and find ways to save.</p>
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Your Spending Overview</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">Analyze your finances and find ways to save.</p>
         </div>
 
         <!-- Time Range Controls -->
@@ -59,99 +59,168 @@
         <!-- Empty/Error state will be injected here -->
     </div>
 
-    <div id="dashboard-content" class="space-y-8">
-        <!-- Summary Stat Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="stat-cards">
-            <!-- Skeleton Loaders -->
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
-                <div class="h-4 w-24 skeleton rounded"></div>
-                <div class="h-8 w-32 skeleton rounded"></div>
+    <div id="dashboard-content" class="space-y-6">
+        <!-- Fintech Health Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Budget Burn Gauges -->
+            <div class="lg:col-span-2 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Budget Health</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Real-time budget adherence</p>
+                </div>
+                <div id="budget-gauges" class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <!-- Gauges injected here -->
+                </div>
             </div>
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
-                <div class="h-4 w-24 skeleton rounded"></div>
-                <div class="h-8 w-32 skeleton rounded"></div>
-            </div>
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
-                <div class="h-4 w-24 skeleton rounded"></div>
-                <div class="h-8 w-32 skeleton rounded"></div>
-            </div>
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 space-y-3">
-                <div class="h-4 w-24 skeleton rounded"></div>
-                <div class="h-8 w-32 skeleton rounded"></div>
+
+            <!-- Spending Velocity -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col justify-center text-center">
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Spending Velocity</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Current vs Historical burn rate</p>
+                </div>
+                <div id="velocity-indicator" class="space-y-2">
+                    <!-- Velocity content injected here -->
+                </div>
             </div>
         </div>
 
-        <!-- Main Chart Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-            <!-- Spending Over Time -->
-            <div class="lg:col-span-2 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">Spending vs Income</h2>
-                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                        <button onclick="toggleCumulative(false)" id="period-toggle" class="px-3 py-1 text-xs font-medium rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">Per Period</button>
-                        <button onclick="toggleCumulative(true)" id="cumulative-toggle" class="px-3 py-1 text-xs font-medium rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Cumulative</button>
+        <!-- Baseline & Main Analysis Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Baseline Split -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col items-center justify-center text-center">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">Survival Cost</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Needs vs Wants</p>
+                <div class="relative w-full h-[200px]">
+                    <canvas id="baselineChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Cash Flow Analysis -->
+            <div class="lg:col-span-3 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between mb-6 shrink-0">
+                    <div class="space-y-1">
+                        <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Cash Flow Analysis</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Income vs Expenses over time</p>
+                    </div>
+                    <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        <button onclick="toggleCumulative(false)" id="period-toggle" class="px-3 py-1 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm">Per Period</button>
+                        <button onclick="toggleCumulative(true)" id="cumulative-toggle" class="px-3 py-1 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Cumulative</button>
                     </div>
                 </div>
-                <div class="chart-container">
+                <div class="relative flex-1 h-[300px] w-full mb-4">
                     <canvas id="trendsChart"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- Category Breakdown -->
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Category Mix</h2>
-                <div class="chart-container mb-6">
-                    <canvas id="categoryChart"></canvas>
-                </div>
-                <div id="category-list" class="space-y-3">
-                    <!-- Categories will be injected here -->
-                </div>
+        <!-- Summary Stat Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="stat-cards">
+            <!-- Skeleton Loaders -->
+            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+                <div class="h-4 w-24 skeleton rounded"></div>
+                <div class="h-8 w-32 skeleton rounded"></div>
+            </div>
+            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+                <div class="h-4 w-24 skeleton rounded"></div>
+                <div class="h-8 w-32 skeleton rounded"></div>
+            </div>
+            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+                <div class="h-4 w-24 skeleton rounded"></div>
+                <div class="h-8 w-32 skeleton rounded"></div>
+            </div>
+            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
+                <div class="h-4 w-24 skeleton rounded"></div>
+                <div class="h-8 w-32 skeleton rounded"></div>
             </div>
         </div>
 
-        <!-- Secondary Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Category Trends -->
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Monthly Category Trends</h2>
-                <div class="chart-container">
+        <!-- Secondary Insights Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Spending Mix -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col relative overflow-hidden">
+                <div class="mb-6 shrink-0">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Spending Mix</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Distribution by category</p>
+                </div>
+                <div class="flex flex-col gap-6 items-center justify-center flex-1">
+                    <div class="relative w-full h-[200px]">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div id="category-list" class="w-full space-y-2 overflow-y-auto max-h-[200px] no-scrollbar pr-2">
+                        <!-- Categories will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Evolution -->
+            <div class="lg:col-span-2 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Category Evolution</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Monthly category changes</p>
+                </div>
+                <div class="chart-container h-[250px]">
                     <canvas id="categoryTrendsChart"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- Time Based Patterns -->
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Spend by Day of Week</h2>
-                <div class="chart-container">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Weekly Rhythm -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Weekly Rhythm</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Spending by day</p>
+                </div>
+                <div class="chart-container h-[250px]">
                     <canvas id="dowChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Smart Insights -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Smart Insights</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">AI-driven patterns</p>
+                </div>
+                <div id="insights-container" class="space-y-4">
+                    <!-- Smart cards injected here -->
                 </div>
             </div>
         </div>
 
-        <!-- Assets & Top Transactions -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
-            <!-- Assets Panel -->
-            <div class="lg:col-span-1 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Asset Growth</h2>
-                <div class="chart-container mb-6">
-                    <canvas id="assetGrowthChart"></canvas>
+        <!-- Assets & Transactions Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Wealth Management Panel -->
+            <div class="lg:col-span-1 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Wealth Growth</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Asset accumulation</p>
                 </div>
-                <div class="chart-container">
-                    <canvas id="assetAllocationChart"></canvas>
+                <div class="space-y-8">
+                    <div class="chart-container h-[150px]">
+                        <canvas id="assetGrowthChart"></canvas>
+                    </div>
+                    <div class="chart-container h-[150px]">
+                        <canvas id="assetAllocationChart"></canvas>
+                    </div>
                 </div>
             </div>
 
             <!-- Top Transactions -->
-            <div class="lg:col-span-2 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Largest Expenses</h2>
+            <div class="lg:col-span-2 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <div class="mb-6">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Significant Outflows</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Largest expenses in range</p>
+                </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
+                    <table class="w-full text-left text-xs">
                         <thead>
                             <tr class="text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
-                                <th class="pb-3 font-medium">Date</th>
-                                <th class="pb-3 font-medium">Category</th>
-                                <th class="pb-3 font-medium">Description</th>
-                                <th class="pb-3 font-medium text-right">Amount</th>
+                                <th class="pb-3 font-semibold">Date</th>
+                                <th class="pb-3 font-semibold">Category</th>
+                                <th class="pb-3 font-semibold">Description</th>
+                                <th class="pb-3 font-semibold text-right">Amount</th>
                             </tr>
                         </thead>
                         <tbody id="top-transactions-body">
@@ -161,13 +230,7 @@
                 </div>
             </div>
         </div>
-
-        <!-- AI Insights -->
-        <div id="insights-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Pro-tip style cards injected here -->
-        </div>
     </div>
-</div>
 {% endblock %}
 
 {% block scripts %}

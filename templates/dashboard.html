@@ -229,13 +229,11 @@
                                 <p class="font-bold text-emerald-600 text-sm">+{{ financial_summary.total_income|indian_format }}</p>
                             </div>
                             <div class="flex items-center justify-between p-3 rounded-xl bg-rose-50/50 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800">
-                                <div class="flex items-center justify-between p-3 rounded-xl bg-rose-50/50 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-[10px]">↑</div>
-                                        <p class="text-xs font-medium text-slate-600 dark:text-slate-400">Total Expenses</p>
-                                    </div>
-                                    <p class="font-bold text-rose-600 text-sm">-{{ financial_summary.total_expenses|indian_format }}</p>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-[10px]">↑</div>
+                                    <p class="text-xs font-medium text-slate-600 dark:text-slate-400">Total Expenses</p>
                                 </div>
+                                <p class="font-bold text-rose-600 text-sm">-{{ financial_summary.total_expenses|indian_format }}</p>
                             </div>
                         </div>
                     </div>

@@ -53,29 +53,24 @@ document.addEventListener('DOMContentLoaded', () => {
 const LogoAnimation = {
     elements: {
         containers: document.querySelectorAll('.logo-container'),
-        halos: document.querySelectorAll('.logo-processing-halo'),
-        coins: document.querySelectorAll('.logo-success-coin'),
     },
 
-    setLoading() {
-        this.elements.containers.forEach(el => el.classList.add('logo-loading'));
+    setState(state) {
+        const states = ['idle', 'processing', 'success'];
+        this.elements.containers.forEach(container => {
+            states.forEach(s => container.classList.remove(`logo-state-${s}`));
+            container.classList.add(`logo-state-${state}`);
+        });
     },
 
-    setProcessing() {
-        this.elements.halos.forEach(el => el.classList.remove('hidden'));
-    },
-
+    setLoading() { this.setState('processing'); },
+    setProcessing() { this.setState('processing'); },
     setSuccess() {
-        this.elements.coins.forEach(el => el.classList.remove('hidden'));
-        // Return to normal after animation finishes (0.7s)
-        setTimeout(() => this.reset(), 700);
+        this.setState('success');
+        // Return to normal after animation finishes (0.8s)
+        setTimeout(() => this.setState('idle'), 800);
     },
-
-    reset() {
-        this.elements.containers.forEach(el => el.classList.remove('logo-loading'));
-        this.elements.halos.forEach(el => el.classList.add('hidden'));
-        this.elements.coins.forEach(el => el.classList.add('hidden'));
-    }
+    reset() { this.setState('idle'); }
 };
 
 // Trigger loading animation on form submissions

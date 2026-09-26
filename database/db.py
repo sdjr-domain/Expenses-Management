@@ -213,6 +213,165 @@ def get_analytics_summary(user_id, start_date, end_date):
             "largest_transaction": largest_transaction
         }
 
+def get_budget_adherence(user_id, start_date, end_date):
+    """Returns actual spend vs budget limit for each category."""
+    with get_db() as db:
+        # Get all limits for the user
+        limits = db.execute("SELECT category_name, limit_value FROM category_limits WHERE user_id = ?", (user_id,)).fetchall()
+
+        # Get actual spend per category for the range
+        spend = db.execute(
+            "SELECT category, SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY category",
+            (user_id, start_date, end_date)
+        ).fetchall()
+        spend_map = {row["category"]: row["total"] for row in spend}
+
+        adherence = []
+        for lim in limits:
+            cat = lim["category_name"]
+            limit_val = lim["limit_value"]
+            actual_val = spend_map.get(cat, 0)
+            percent = (actual_val / limit_val * 100) if limit_val > 0 else 0
+            adherence.append({
+                "category": cat,
+                "limit": limit_val,
+                "actual": actual_val,
+                "percent": round(percent, 2)
+            })
+        return adherence
+
+def get_spending_velocity(user_id):
+    """Calculates spending velocity: current daily avg vs historical daily avg."""
+    with get_db() as db:
+        today = datetime.now()
+        first_of_month = today.replace(day=1)
+
+        # Current Month Daily Average
+        curr_month_row = db.execute(
+            "SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ?",
+            (user_id, first_of_month.strftime("%Y-%m-%d"))
+        ).fetchone()
+        curr_total = curr_month_row["total"] if curr_month_row["total"] else 0
+        days_elapsed = (today - first_of_month).days + 1
+        curr_daily_avg = curr_total / days_elapsed
+
+        # Historical Daily Average (last 90 days)
+        ninety_days_ago = (today - timedelta(days=90)).strftime("%Y-%m-%d")
+        hist_row = db.execute(
+            "SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ?",
+            (user_id, ninety_days_ago)
+        ).fetchone()
+        hist_total = hist_row["total"] if hist_row["total"] else 0
+        hist_daily_avg = hist_total / 90
+
+        diff_percent = 0
+        if hist_daily_avg > 0:
+            diff_percent = ((curr_daily_avg - hist_daily_avg) / hist_daily_avg) * 100
+
+        return {
+            "current_daily_avg": round(curr_daily_avg, 2),
+            "historical_daily_avg": round(hist_daily_avg, 2),
+            "velocity_percent": round(diff_percent, 2)
+        }
+
+def get_baseline_split(user_id, start_date, end_date):
+    """Returns totals for essential vs discretionary spending."""
+    with get_db() as db:
+        # Join expenses with categories to check is_essential flag
+        row = db.execute("""
+            SELECT
+                SUM(CASE WHEN c.is_essential = 1 THEN e.amount ELSE 0 END) as essential,
+                SUM(CASE WHEN c.is_essential = 0 THEN e.amount ELSE 0 END) as discretionary
+            FROM expenses e
+            JOIN categories c ON e.category = c.name AND e.user_id = c.user_id
+            WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
+        """, (user_id, start_date, end_date)).fetchone()
+
+        return {
+            "essential": row["essential"] if row["essential"] else 0,
+            "discretionary": row["discretionary"] if row["discretionary"] else 0
+        }
+
+
+def get_budget_adherence(user_id, start_date, end_date):
+    """Returns actual spend vs budget limit for each category."""
+    with get_db() as db:
+        # Get all limits for the user
+        limits = db.execute("SELECT category_name, limit_value FROM category_limits WHERE user_id = ?", (user_id,)).fetchall()
+
+        # Get actual spend per category for the range
+        spend = db.execute(
+            "SELECT category, SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? GROUP BY category",
+            (user_id, start_date, end_date)
+        ).fetchall()
+        spend_map = {row["category"]: row["total"] for row in spend}
+
+        adherence = []
+        for lim in limits:
+            cat = lim["category_name"]
+            limit_val = lim["limit_value"]
+            actual_val = spend_map.get(cat, 0)
+            percent = (actual_val / limit_val * 100) if limit_val > 0 else 0
+            adherence.append({
+                "category": cat,
+                "limit": limit_val,
+                "actual": actual_val,
+                "percent": round(percent, 2)
+            })
+        return adherence
+
+def get_spending_velocity(user_id):
+    """Calculates spending velocity: current daily avg vs historical daily avg."""
+    with get_db() as db:
+        today = datetime.now()
+        first_of_month = today.replace(day=1)
+
+        # Current Month Daily Average
+        curr_month_row = db.execute(
+            "SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ?",
+            (user_id, first_of_month.strftime("%Y-%m-%d"))
+        ).fetchone()
+        curr_total = curr_month_row["total"] if curr_month_row["total"] else 0
+        days_elapsed = (today - first_of_month).days + 1
+        curr_daily_avg = curr_total / days_elapsed
+
+        # Historical Daily Average (last 90 days)
+        ninety_days_ago = (today - timedelta(days=90)).strftime("%Y-%m-%d")
+        hist_row = db.execute(
+            "SELECT SUM(amount) as total FROM expenses WHERE user_id = ? AND date >= ?",
+            (user_id, ninety_days_ago)
+        ).fetchone()
+        hist_total = hist_row["total"] if hist_row["total"] else 0
+        hist_daily_avg = hist_total / 90
+
+        diff_percent = 0
+        if hist_daily_avg > 0:
+            diff_percent = ((curr_daily_avg - hist_daily_avg) / hist_daily_avg) * 100
+
+        return {
+            "current_daily_avg": round(curr_daily_avg, 2),
+            "historical_daily_avg": round(hist_daily_avg, 2),
+            "velocity_percent": round(diff_percent, 2)
+        }
+
+def get_baseline_split(user_id, start_date, end_date):
+    """Returns totals for essential vs discretionary spending."""
+    with get_db() as db:
+        # Join expenses with categories to check is_essential flag
+        row = db.execute("""
+            SELECT
+                SUM(CASE WHEN c.is_essential = 1 THEN e.amount ELSE 0 END) as essential,
+                SUM(CASE WHEN c.is_essential = 0 THEN e.amount ELSE 0 END) as discretionary
+            FROM expenses e
+            JOIN categories c ON e.category = c.name AND e.user_id = c.user_id
+            WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
+        """, (user_id, start_date, end_date)).fetchone()
+
+        return {
+            "essential": row["essential"] if row["essential"] else 0,
+            "discretionary": row["discretionary"] if row["discretionary"] else 0
+        }
+
 def get_spending_trends(user_id, start_date, end_date, bucket='day', category=None):
     """Returns time-series data for income and expenses."""
     with get_db() as db:
@@ -459,16 +618,23 @@ def get_total_assets(user_id):
         return row["total"] if row["total"] else 0
 
 def ensure_default_categories(user_id):
-
-    """Ensures a user has the basic set of default categories."""
-    defaults = ["Food", "Transport", "Bills", "Health", "Entertainment", "Shopping", "Other"]
+    """Ensures a user has the basic set of default categories with essential flags."""
+    defaults = [
+        ("Food", 1),
+        ("Transport", 1),
+        ("Bills", 1),
+        ("Health", 1),
+        ("Entertainment", 0),
+        ("Shopping", 0),
+        ("Other", 0)
+    ]
     with get_db() as db:
         existing = db.execute("SELECT name FROM categories WHERE user_id = ?", (user_id,)).fetchall()
         existing_names = {row["name"] for row in existing}
 
-        for name in defaults:
+        for name, essential in defaults:
             if name not in existing_names:
-                db.execute("INSERT INTO categories (user_id, name) VALUES (?, ?)", (user_id, name))
+                db.execute("INSERT INTO categories (user_id, name, is_essential) VALUES (?, ?, ?)", (user_id, name, essential))
         db.commit()
 
 def init_db():
@@ -513,6 +679,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 color TEXT,
+                is_essential INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)

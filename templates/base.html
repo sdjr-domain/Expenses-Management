@@ -24,6 +24,92 @@
         body { font-family: 'Inter', sans-serif; }
         h1, h2, .serif { font-family: 'Playfair Display', serif; }
 
+        :root {
+            --logo-main: #10252B;
+            --logo-accent: #10A36D;
+        }
+        .dark {
+            --logo-main: #f8fafc;
+            --logo-accent: #10A36D;
+        }
+
+        /* Logo Motion System */
+        .logo-container {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #logo-coin {
+            transition: transform 0.3s ease, filter 0.3s ease;
+            transform-origin: center;
+            will-change: transform;
+        }
+
+        #logo-eyes {
+            transition: transform 0.3s ease;
+            transform-origin: center;
+            will-change: transform;
+        }
+
+        /* Idle/Hover Breath */
+        .logo-state-idle #logo-coin {
+            animation: logo-breath 3s ease-in-out infinite;
+        }
+        .logo-state-idle #logo-eyes {
+            animation: logo-blink 4s ease-in-out infinite;
+        }
+        .logo-container:hover #logo-coin {
+            animation-duration: 1.5s;
+            filter: drop-shadow(0 0 3px var(--logo-accent));
+        }
+
+        /* Processing: Orbital Pulse */
+        .logo-state-processing #wallet-cards {
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+        .logo-state-processing #logo-motion-overlay {
+            opacity: 1;
+        }
+
+        /* Success: Coin Leap */
+        .logo-state-success #logo-coin {
+            animation: logo-leap 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .logo-state-success #wallet-pocket {
+            animation: logo-pocket-expand 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes logo-breath {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes logo-blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+
+        @keyframes logo-orbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes logo-pulse {
+            0%, 100% { opacity: 0.2; transform: scale(0.95); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+
+        @keyframes logo-leap {
+            0% { transform: translateY(0) rotate(0deg); }
+            40% { transform: translateY(-8px) rotate(180deg); }
+            100% { transform: translateY(0) rotate(360deg); }
+        }
+
+        @keyframes logo-pocket-expand {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
         /* Force solid background for dropdown options to prevent transparency */
         select option {
             background-color: white !important;
@@ -55,14 +141,21 @@
 
     <nav class="flex items-center justify-between px-6 py-4 w-full">
         <a href="{{ url_for('landing') }}" class="flex items-center gap-3 text-lg font-semibold tracking-tight group">
-            <div class="relative size-[42px] overflow-clip transition-transform duration-200 group-hover:scale-105 logo-container">
-                <!-- Base Logo -->
-                <img src="{{ url_for('static', filename='images/logo/logo-compact.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full dark:hidden">
-                <img src="{{ url_for('static', filename='images/logo/logo-monochrome.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full hidden dark:block">
-
-                <!-- Motion Elements -->
-                <img src="{{ url_for('static', filename='images/logo/motion-halo.svg') }}" alt="" class="absolute inset-0 size-full hidden logo-processing-halo">
-                <img src="{{ url_for('static', filename='images/logo/motion-coin.svg') }}" alt="" class="absolute size-[12px] top-[6px] left-[18px] hidden logo-success-coin">
+            <div class="relative size-[42px] overflow-clip logo-container logo-state-idle">
+                <svg viewBox="0 0 42 42" class="absolute inset-0 size-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="logo-main-group">
+                        <g id="wallet-cards">
+                            <path d="M7.77 16.8C7.77 16.0574 8.07975 15.3452 8.63111 14.8201C9.18246 14.295 9.93026 14 10.71 14H31.29C32.0697 14 32.8175 14.295 33.3689 14.8201C33.9202 15.3452 34.23 16.0574 34.23 16.8M7.77 19.6H12.18C13.356 19.6 14.532 20.02 15.267 20.86L16.884 22.12C19.236 24.36 22.911 24.36 25.263 22.12L26.88 20.86C27.615 20.16 28.791 19.6 29.967 19.6H34.23M10.71 8.4H31.29C32.9137 8.4 34.23 9.6536 34.23 11.2V30.8C34.23 32.3464 32.9137 33.6 31.29 33.6H10.71C9.08628 33.6 7.77 32.3464 7.77 30.8V11.2C7.77 9.6536 9.08628 8.4 10.71 8.4Z" stroke="var(--logo-main)" stroke-linecap="round" />
+                        </g>
+                        <path id="wallet-pocket" d="M7.56 23.1C12.7292 36.54 29.2708 36.54 34.44 23.1" stroke="var(--logo-accent)" stroke-width="2.73" stroke-linecap="round" />
+                        <circle id="logo-coin" cx="30.24" cy="19.74" r="3.255" fill="var(--logo-accent)" stroke="var(--logo-main)" stroke-width="1.05" />
+                        <path id="logo-eyes" d="M11.76 15.54L15.4622 18.9M22.3378 18.9L26.04 15.54" stroke="white" stroke-width="1.47" stroke-linecap="round" />
+                    </g>
+                    <g id="logo-motion-overlay" class="opacity-0 transition-opacity duration-300">
+                        <circle cx="21" cy="21" r="18" stroke="var(--logo-accent)" stroke-width="1" fill="none" class="animate-[logo-orbit_2s_linear_infinite]" stroke-dasharray="4 8" />
+                        <circle cx="21" cy="21" r="16" stroke="var(--logo-accent)" stroke-width="1" fill="none" class="animate-[logo-pulse_3s_ease-in-out_infinite]" opacity="0.5" />
+                    </g>
+                </svg>
             </div>
             <span class="dark:text-white">Spendly</span>
         </a>
@@ -137,14 +230,21 @@
     <footer class="border-t border-slate-100 dark:border-slate-800 mt-20 py-12 px-6">
         <div class="w-full flex flex-col items-center gap-4 text-center">
             <div class="flex items-center gap-3 text-lg font-semibold">
-                <div class="relative size-[42px] overflow-clip logo-container group">
-                    <!-- Base Logo -->
-                    <img src="{{ url_for('static', filename='images/logo/logo-primary.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full dark:hidden">
-                    <img src="{{ url_for('static', filename='images/logo/logo-monochrome.svg') }}" alt="Spendly Logo" class="absolute inset-0 size-full hidden dark:block">
-
-                    <!-- Motion Elements -->
-                    <img src="{{ url_for('static', filename='images/logo/motion-halo.svg') }}" alt="" class="absolute inset-0 size-full hidden logo-processing-halo">
-                    <img src="{{ url_for('static', filename='images/logo/motion-coin.svg') }}" alt="" class="absolute size-[12px] top-[6px] left-[18px] hidden logo-success-coin">
+                <div class="relative size-[42px] overflow-clip logo-container logo-state-idle">
+                    <svg viewBox="0 0 42 42" class="absolute inset-0 size-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g id="logo-main-group">
+                            <g id="wallet-cards">
+                                <path d="M7.77 16.8C7.77 16.0574 8.07975 15.3452 8.63111 14.8201C9.18246 14.295 9.93026 14 10.71 14H31.29C32.0697 14 32.8175 14.295 33.3689 14.8201C33.9202 15.3452 34.23 16.0574 34.23 16.8M7.77 19.6H12.18C13.356 19.6 14.532 20.02 15.267 20.86L16.884 22.12C19.236 24.36 22.911 24.36 25.263 22.12L26.88 20.86C27.615 20.16 28.791 19.6 29.967 19.6H34.23M10.71 8.4H31.29C32.9137 8.4 34.23 9.6536 34.23 11.2V30.8C34.23 32.3464 32.9137 33.6 31.29 33.6H10.71C9.08628 33.6 7.77 32.3464 7.77 30.8V11.2C7.77 9.6536 9.08628 8.4 10.71 8.4Z" stroke="var(--logo-main)" stroke-linecap="round" />
+                            </g>
+                            <path id="wallet-pocket" d="M7.56 23.1C12.7292 36.54 29.2708 36.54 34.44 23.1" stroke="var(--logo-accent)" stroke-width="2.73" stroke-linecap="round" />
+                            <circle id="logo-coin" cx="30.24" cy="19.74" r="3.255" fill="var(--logo-accent)" stroke="var(--logo-main)" stroke-width="1.05" />
+                            <path id="logo-eyes" d="M11.76 15.54L15.4622 18.9M22.3378 18.9L26.04 15.54" stroke="white" stroke-width="1.47" stroke-linecap="round" />
+                        </g>
+                        <g id="logo-motion-overlay" class="opacity-0 transition-opacity duration-300">
+                            <circle cx="21" cy="21" r="18" stroke="var(--logo-accent)" stroke-width="1" fill="none" class="animate-[logo-orbit_2s_linear_infinite]" stroke-dasharray="4 8" />
+                            <circle cx="21" cy="21" r="16" stroke="var(--logo-accent)" stroke-width="1" fill="none" class="animate-[logo-pulse_3s_ease-in-out_infinite]" opacity="0.5" />
+                        </g>
+                    </svg>
                 </div>
                 <span class="dark:text-white">Spendly</span>
             </div>

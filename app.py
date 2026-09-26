@@ -2,7 +2,7 @@ import random
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_all_transactions, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics, get_previous_month_salary, set_category_limit, get_user_limits, get_income_by_id, update_income, delete_income
+from database.db import init_db, seed_db, get_db, get_user_by_email, get_user_by_id, get_spending_summary, get_category_totals, get_all_transactions, get_filtered_expenses_count, get_total_transaction_count, add_expense, add_income, delete_expense, update_expense, get_expense_by_id, add_category, get_user_categories, ensure_default_categories, update_category, delete_category, get_category_name, count_expenses_in_category, get_assets, get_asset_by_id, add_asset, update_asset, delete_asset, get_total_assets, get_financial_summary, get_analytics_summary, get_spending_trends, get_category_distribution, get_category_trends, get_spend_by_day_of_week, get_asset_metrics, get_previous_month_salary, set_category_limit, get_user_limits, get_income_by_id, update_income, delete_income, get_budget_adherence, get_spending_velocity, get_baseline_split
 from functools import wraps
 
 # Category color mapping for the UI
@@ -621,6 +621,11 @@ def analytics_api():
         dow_spend = get_spend_by_day_of_week(user_id, start_date, end_date)
         assets_data = get_asset_metrics(user_id)
 
+        # New Fintech Metrics
+        budget_burn = get_budget_adherence(user_id, start_date, end_date)
+        velocity = get_spending_velocity(user_id)
+        baseline_split = get_baseline_split(user_id, start_date, end_date)
+
         with get_db() as db:
             top_expenses = db.execute(
                 "SELECT date, category, description, amount FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY amount DESC LIMIT 5",
@@ -634,7 +639,10 @@ def analytics_api():
             "category_trends": [dict(row) for row in cat_trends],
             "dow_spend": [dict(row) for row in dow_spend],
             "assets": assets_data,
-            "top_expenses": [dict(row) for row in top_expenses]
+            "top_expenses": [dict(row) for row in top_expenses],
+            "budget_burn": budget_burn,
+            "velocity": velocity,
+            "baseline_split": baseline_split
         })
     except Exception as e:
         app.logger.error(f"Analytics API error: {e}", exc_info=True)

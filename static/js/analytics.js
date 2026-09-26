@@ -61,6 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTopTransactions(data.top_expenses);
             updateInsights(data.summary, data.distribution);
 
+            // New Fintech Visuals
+            renderBudgetGauges(data.budget_burn);
+            renderSpendingVelocity(data.velocity);
+            renderBaselineChart(data.baseline_split);
+
         } catch (error) {
             console.error("Failed to refresh dashboard:", error);
             showEmptyState('error');
@@ -100,18 +105,122 @@ document.addEventListener('DOMContentLoaded', () => {
         const currency = '₹';
 
         const cards = [
-            { label: 'Total Expenses', value: `${currency}${(summary.total_expenses || 0).toLocaleString()}`, color: 'text-rose-600' },
-            { label: 'Total Income', value: `${currency}${(summary.total_income || 0).toLocaleString()}`, color: 'text-emerald-600' },
-            { label: 'Net Savings', value: `${currency}${(summary.net_savings || 0).toLocaleString()}`, color: 'text-blue-600' },
-            { label: 'Savings Rate', value: `${(summary.savings_rate || 0)}%`, color: 'text-indigo-600' },
+            { label: 'Total Expenses', value: `${currency}${(summary.total_expenses || 0).toLocaleString()}`, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/10', border: 'border-rose-100 dark:border-rose-900/20' },
+            { label: 'Total Income', value: `${currency}${(summary.total_income || 0).toLocaleString()}`, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/10', border: 'border-emerald-100 dark:border-emerald-900/20' },
+            { label: 'Net Savings', value: `${currency}${(summary.net_savings || 0).toLocaleString()}`, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/10', border: 'border-blue-100 dark:border-blue-900/20' },
+            { label: 'Savings Rate', value: `${(summary.savings_rate || 0)}%`, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/10', border: 'border-indigo-100 dark:border-indigo-900/20' },
         ];
 
         container.innerHTML = cards.map(card => `
-            <div class="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                <p class="text-xs font-medium text-slate-500 dark:text-slate-400">${card.label}</p>
-                <p class="text-2xl font-bold ${card.color} dark:text-white mt-1">${card.value}</p>
+            <div class="p-6 rounded-3xl border ${card.border} ${card.bg} transition-all hover:shadow-md">
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">${card.label}</p>
+                <p class="text-3xl font-bold ${card.color} dark:text-white mt-2">${card.value}</p>
             </div>
         `).join('');
+    }
+
+    function renderBudgetGauges(data) {
+        const container = document.getElementById('budget-gauges');
+        if (!container || !data) return;
+
+        if (data.length === 0) {
+            container.innerHTML = `<p class="col-span-full text-center text-slate-400 text-sm italic py-4">No budget limits set. Visit /limits to set goals.</p>`;
+            return;
+        }
+
+        container.innerHTML = data.map(item => {
+            const percent = item.percent;
+            const actual = item.actual;
+            const limit = item.limit;
+            const diff = Math.abs(actual - limit);
+            const isOver = actual > limit;
+
+            let colorClass = 'bg-emerald-500';
+            let textColor = 'text-emerald-600';
+            let status = 'Healthy';
+
+            if (percent >= 100) {
+                colorClass = 'bg-rose-500';
+                textColor = 'text-rose-600';
+                status = 'Over Budget';
+            } else if (percent >= 70) {
+                colorClass = 'bg-amber-500';
+                textColor = 'text-amber-600';
+                status = 'Warning';
+            }
+
+            return `
+                <div class="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3 text-center">
+                    <p class="text-sm font-bold text-slate-700 dark:text-slate-300">${item.category}</p>
+                    <div class="relative pt-1">
+                        <div class="flex mb-2 items-center justify-between">
+                            <div><span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${textColor} bg-current/10">${status}</span></div>
+                            <div class="text-right"><span class="text-xs font-semibold inline-block text-slate-600 dark:text-slate-400">${percent}%</span></div>
+                        </div>
+                        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-slate-200 dark:bg-slate-700">
+                            <div style="width:${Math.min(percent, 100)}%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${colorClass} transition-all duration-500"></div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Spent: ₹${actual.toLocaleString()}</p>
+                        <p class="text-xs font-bold ${isOver ? 'text-rose-600' : 'text-emerald-600'}">
+                            ${isOver ? `Over by ₹${diff.toLocaleString()}` : `Left: ₹${diff.toLocaleString()}`}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderSpendingVelocity(velocity) {
+        const container = document.getElementById('velocity-indicator');
+        if (!container || !velocity) return;
+
+        const vPercent = velocity.velocity_percent;
+        const isFaster = vPercent > 0;
+        const colorClass = isFaster ? 'text-rose-600' : 'text-emerald-600';
+        const icon = isFaster ? '↑' : '↓';
+        const statusText = isFaster ? 'faster' : 'slower';
+
+        container.innerHTML = `
+            <div class="text-4xl font-bold ${colorClass} mb-1">${Math.abs(vPercent).toFixed(1)}% ${icon}</div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">
+                Spending ${statusText} than usual
+            </p>
+            <div class="text-[10px] text-slate-400 dark:text-slate-600 mt-2">
+                Current: ₹${velocity.current_daily_avg} / day <br>
+                Historical: ₹${velocity.historical_daily_avg} / day
+            </div>
+        `;
+    }
+
+    function renderBaselineChart(split) {
+        const canvas = document.getElementById('baselineChart');
+        if (!canvas || !split) return;
+        const ctx = canvas.getContext('2d');
+
+        if (charts['baselineChart']) charts['baselineChart'].destroy();
+
+        charts['baselineChart'] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Essential', 'Discretionary'],
+                datasets: [{
+                    data: [split.essential, split.discretionary],
+                    backgroundColor: ['#10b981', '#f43f5e'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                cutout: '70%'
+            }
+        });
     }
 
     function renderTrendsChart(data) {
@@ -149,30 +258,79 @@ document.addEventListener('DOMContentLoaded', () => {
                         label: 'Expenses',
                         data: expenseData,
                         borderColor: '#f43f5e',
-                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(244, 63, 94, 0)');
+                            gradient.addColorStop(1, 'rgba(244, 63, 94, 0.2)');
+                            return gradient;
+                        },
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        borderWidth: 2
                     },
                     {
                         label: 'Income',
                         data: incomeData,
                         borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return null;
+                            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                            gradient.addColorStop(0, 'rgba(16, 185, 129, 0)');
+                            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.2)');
+                            return gradient;
+                        },
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5,
+                        borderWidth: 2
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                },
                 plugins: {
-                    legend: { labels: { color: textColor, font: { family: 'Inter' } } }
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            color: textColor,
+                            font: { family: 'Inter', size: 12 },
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { family: 'Inter', size: 13 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
                 },
                 scales: {
                     y: {
-                        grid: { color: gridColor },
-                        ticks: { color: textColor, font: { family: 'Inter' } }
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: {
+                            color: textColor,
+                            font: { family: 'Inter' },
+                            callback: (value) => '₹' + value.toLocaleString()
+                        }
                     },
                     x: {
                         grid: { display: false },
